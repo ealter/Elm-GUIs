@@ -18,10 +18,9 @@ render ms = map (plainText . (\(Menu s _) -> s)) ms
 return : String -> Menu
 return s = Menu s []
 
-{-
-(>>=) : Menu -> (String -> Menu) -> Menu
-(Menu t ms) >>= f = (\s -> Menu t (ms ++ [f s]))
--}
+(>>=) : Menu -> Menu -> Menu
+(Menu t ms) >>= m2 = Menu t (ms ++ [m2])
+infixl 2 >>=
 
 (>>) : Menu -> String -> Menu
 (Menu t ms) >> s = Menu t (ms ++ [return s])
@@ -30,17 +29,10 @@ infixl 1 >>
 menus : [Menu]
 menus =
     [ return "Main" >> "About" >> "Checkout for Updates"
-    , return "File" >> "Save" >> "Edit"
+    , return "File" >>= (return "Save" >> "Save as...") >> "Edit"
     ]
-{-- }
-    [ Menu "Main" [return "About", return "Check for Updates"]
-    , Menu "File" [return "Save", return "Edit"]
-    ]
---}
 
--- main = asText menus
-
-main = flow outward <~ combine 
+main = flow outward <~ combine
     [ scene <~ Window.dimensions
     , render <~ constant menus
     ]
