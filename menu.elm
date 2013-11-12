@@ -1,4 +1,5 @@
 import Window
+import Graphics.Input (hoverable)
 
 -- MODEL: Menu representation and monadic combinators
 data Menu = Menu String [Menu]
@@ -22,11 +23,20 @@ desktop (w,h) = flow outward <|
     [ spacer w h |> color lightGrey
     , spacer w menu_height |> color darkGrey ]
 
-render : [Menu] -> Element
-render ms = map (plainText . (\(Menu s _) -> s)) ms
-            |> intersperse (spacer 15 menu_height)
-            |> (\es -> spacer 10 menu_height :: es)
-            |> flow right
+render1 : String -> Signal (Element, Bool)
+render1 s = let (elem, hover) = hoverable <| plainText s
+                sel b = if b then color lightBlue else id
+            in lift2 (,) (lift2 sel hover (constant elem)) hover
+
+render : [Menu] -> Signal Element
+render ms = let
+    rendered : Signal [(Element, Bool)]
+    rendered = combine <| map (render1 . (\(Menu s _) -> s)) ms
+    labels = lift (map fst) rendered
+        in labels
+            |> lift (intersperse (spacer 15 menu_height))
+            |> lift (\es -> spacer 10 menu_height :: es)
+            |> lift (flow right)
 
 -- MAIN
 menus : [Menu]
@@ -37,6 +47,6 @@ menus =
 
 main = flow outward <~ combine
     [ desktop <~ Window.dimensions
-    , render <~ constant menus
+    , render menus
     ]
 
