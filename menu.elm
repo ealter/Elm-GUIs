@@ -12,7 +12,7 @@ return s = Menu s []
 infixl 2 >>=
 
 (>>) : Menu -> String -> Menu
-(Menu t ms) >> s = Menu t (ms ++ [return s])
+m >> s = m >>= return s
 infixl 1 >>
 
 -- VIEW: Desktop and menu
