@@ -23,26 +23,38 @@ submenus (Menu _ ms) = ms
 
 -- VIEW: Desktop and menu
 menu_height = 20
+item_height = 30
 
 desktop : (Int, Int) -> Element
 desktop (w,h) = flow outward <|
     [ spacer w h |> color lightGrey
     , spacer w menu_height |> color darkGrey ]
 
-render1 : String -> Signal (Element, Bool)
-render1 s = let (elem, hover) = hoverable <| plainText s
-                sel b = if b then color lightCharcoal else id
-            in lift2 (,) (lift2 sel hover (constant elem)) hover
+renderTitle : Menu -> Signal (Element, Maybe [Menu])
+renderTitle m = let (elem, isHovering) = hoverable <| plainText (title m)
+                    sel b = if b then color lightCharcoal else id
+                    toRender b = if b then Just (submenus m) else Nothing
+                in lift2 (,) (lift2 sel isHovering (constant elem))
+                             (lift  toRender isHovering)
+
+render1 : Menu -> Element
+render1 m = let labels = map (plainText . title) <| submenus m
+                maxWidth = maximum <| map widthOf labels
+                spacers = map (\_ -> spacer (maxWidth + 20) item_height) labels
+                items = zipWith (\l s -> layers [l,s]) labels spacers
+            in flow down items
+
 
 render : [Menu] -> Signal Element
 render ms = let
-    rendered : Signal [(Element, Bool)]
-    rendered = combine <| map (render1 . title) ms
-    labels = lift (map fst) rendered
-        in labels
+    -- rendered : Signal [(Element, Bool)]
+    rendered = combine <| map renderTitle ms
+    --selected = filter snd <~ rendered
+    titles = lift (map fst) rendered
             |> lift (intersperse (spacer 15 menu_height))
             |> lift (\es -> spacer 10 menu_height :: es)
             |> lift (flow right)
+        in titles
 
 -- MAIN
 menus : [Menu]
