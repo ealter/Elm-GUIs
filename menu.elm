@@ -15,6 +15,12 @@ infixl 2 >>=
 m >> s = m >>= return s
 infixl 1 >>
 
+title : Menu -> String
+title (Menu t _) = t
+
+submenus : Menu -> [Menu]
+submenus (Menu _ ms) = ms
+
 -- VIEW: Desktop and menu
 menu_height = 20
 
@@ -25,13 +31,13 @@ desktop (w,h) = flow outward <|
 
 render1 : String -> Signal (Element, Bool)
 render1 s = let (elem, hover) = hoverable <| plainText s
-                sel b = if b then color lightBlue else id
+                sel b = if b then color lightCharcoal else id
             in lift2 (,) (lift2 sel hover (constant elem)) hover
 
 render : [Menu] -> Signal Element
 render ms = let
     rendered : Signal [(Element, Bool)]
-    rendered = combine <| map (render1 . (\(Menu s _) -> s)) ms
+    rendered = combine <| map (render1 . title) ms
     labels = lift (map fst) rendered
         in labels
             |> lift (intersperse (spacer 15 menu_height))
