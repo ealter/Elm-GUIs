@@ -45,8 +45,8 @@ render1 m = let labels = map (plainText . title) <| m
                 items = zipWith (\s l -> layers [s,l]) spacers labels
             in flow down items
 
-render : [Menu] -> Signal Element
-render ms = let
+render : Direction -> Direction -> Int -> Int -> [Menu] -> Signal Element
+render flowDirection submenuFlowDirection initialPadding inBetweenPadding ms = let
     -- rendered : [Signal (Element, Bool)]
     rendered = map renderTitle ms
     renderSubmenu (elem, submenu) = case submenu of
@@ -55,13 +55,15 @@ render ms = let
 
     allSubmenus = lift addSpacersAndRender (combine (map (lift renderSubmenu) rendered))
 
-    addSpacersAndRender menus = intersperse (spacer 15 menu_height) menus
-            |> \es -> spacer 10 menu_height :: es
-            |> flow right
+    addSpacersAndRender menus = intersperse (spacer inBetweenPadding menu_height) menus
+            |> \es -> spacer initialPadding menu_height :: es
+            |> flow flowDirection
 
     titles = lift (map fst) (combine rendered)
             |> lift addSpacersAndRender
-        in lift (flow down) (combine [titles, allSubmenus])
+        in lift (flow submenuFlowDirection) (combine [titles, allSubmenus])
+
+renderTopLevel = render right down 10 15
 
 -- MAIN
 menus : [Menu]
@@ -72,6 +74,6 @@ menus =
 
 main = flow outward <~ combine
     [ desktop <~ Window.dimensions
-    , render menus
+    , renderTopLevel menus
     ]
 
