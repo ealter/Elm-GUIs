@@ -30,7 +30,7 @@ desktop (w,h) = flow outward <|
     [ spacer w h |> color lightGrey
     , spacer w menu_height |> color darkGrey ]
 
--- Renders an element of the top level menu and maybe its submenu
+-- Takes a menu, renders its title, and returns the submenus to render
 renderTitle : Menu -> Signal (Element, [Menu])
 renderTitle m = let (elem, isHovering) = hoverable <| plainText (title m)
                     sel b = if b then color lightCharcoal else id
@@ -41,22 +41,22 @@ renderTitle m = let (elem, isHovering) = hoverable <| plainText (title m)
 render1 : [Menu] -> Element
 render1 m = let labels = map (plainText . title) <| m
                 maxWidth = maximum <| map widthOf labels
-                spacers = map (\_ -> (color lightCharcoal (spacer (maxWidth + 20) item_height))) labels
-                items = zipWith (\s l -> layers [s,l]) spacers labels
+                items = map (\el -> (container (maxWidth + 20) item_height midLeft el)
+                                    |> color lightCharcoal) labels
             in flow down items
 
 render : Direction -> Direction -> Int -> Int -> [Menu] -> Signal Element
 render flowDirection submenuFlowDirection initialPadding inBetweenPadding ms = let
-    -- rendered : [Signal (Element, Bool)]
+    rendered : [Signal (Element, [Menu])]
     rendered = map renderTitle ms
     renderSubmenu (elem, submenu) = case submenu of
             [] -> spacer (widthOf elem) 10
             otherwise ->  render1 submenu
 
-    allSubmenus = lift addSpacersAndRender (combine (map (lift renderSubmenu) rendered))
+    allSubmenus = addSpacersAndRender <~ combine (map (lift renderSubmenu) rendered)
 
     addSpacersAndRender menus = intersperse (spacer inBetweenPadding menu_height) menus
-            |> \es -> spacer initialPadding menu_height :: es
+            |> \ts -> spacer initialPadding menu_height :: ts
             |> flow flowDirection
 
     titles = lift (map fst) (combine rendered)
@@ -68,7 +68,7 @@ renderTopLevel = render right down 10 15
 -- MAIN
 menus : [Menu]
 menus =
-    [ return "Main" >> "About" >> "Checkout for Updates"
+    [ return "Main" >> "About" >> "Check for Updates"
     , return "File" >>= (return "Save" >> "Save as...") >> "Edit"
     ]
 
