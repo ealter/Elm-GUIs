@@ -30,31 +30,38 @@ desktop (w,h) = flow outward <|
     [ spacer w h |> color lightGrey
     , spacer w menu_height |> color darkGrey ]
 
-renderTitle : Menu -> Signal (Element, Maybe [Menu])
+-- Renders an element of the top level menu and maybe its submenu
+renderTitle : Menu -> Signal (Element, [Menu])
 renderTitle m = let (elem, isHovering) = hoverable <| plainText (title m)
                     sel b = if b then color lightCharcoal else id
-                    toRender b = if b then Just (submenus m) else Nothing
+                    toRender b = if b then submenus m else []
                 in lift2 (,) (lift2 sel isHovering (constant elem))
                              (lift  toRender isHovering)
 
-render1 : Menu -> Element
-render1 m = let labels = map (plainText . title) <| submenus m
+render1 : [Menu] -> Element
+render1 m = let labels = map (plainText . title) <| m
                 maxWidth = maximum <| map widthOf labels
-                spacers = map (\_ -> spacer (maxWidth + 20) item_height) labels
-                items = zipWith (\l s -> layers [l,s]) labels spacers
+                spacers = map (\_ -> (color lightCharcoal (spacer (maxWidth + 20) item_height))) labels
+                items = zipWith (\s l -> layers [s,l]) spacers labels
             in flow down items
-
 
 render : [Menu] -> Signal Element
 render ms = let
-    -- rendered : Signal [(Element, Bool)]
-    rendered = combine <| map renderTitle ms
-    --selected = filter snd <~ rendered
-    titles = lift (map fst) rendered
-            |> lift (intersperse (spacer 15 menu_height))
-            |> lift (\es -> spacer 10 menu_height :: es)
-            |> lift (flow right)
-        in titles
+    -- rendered : [Signal (Element, Bool)]
+    rendered = map renderTitle ms
+    renderSubmenu (elem, submenu) = case submenu of
+            [] -> spacer (widthOf elem) 10
+            otherwise ->  render1 submenu
+
+    allSubmenus = lift addSpacersAndRender (combine (map (lift renderSubmenu) rendered))
+
+    addSpacersAndRender menus = intersperse (spacer 15 menu_height) menus
+            |> \es -> spacer 10 menu_height :: es
+            |> flow right
+
+    titles = lift (map fst) (combine rendered)
+            |> lift addSpacersAndRender
+        in lift (flow down) (combine [titles, allSubmenus])
 
 -- MAIN
 menus : [Menu]
