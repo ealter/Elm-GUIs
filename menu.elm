@@ -22,18 +22,18 @@ submenus : Menu -> [Menu]
 submenus (Menu _ ms) = ms
 
 -- VIEW: Desktop and menu
-menu_height = 20
+title_height = 20
 item_height = 30
 
 desktop : (Int, Int) -> Element
 desktop (w,h) = flow outward <|
     [ spacer w h |> color lightGrey
-    , spacer w menu_height |> color darkGrey ]
+    , spacer w title_height |> color darkGrey ]
 
 -- Takes a menu, renders its title, and returns the submenus to render
 renderTitle : Menu -> Signal (Element, [Menu])
 renderTitle m = let (elem, isHovering) = hoverable <| plainText (title m)
-                    label = container (widthOf elem + 10) menu_height middle elem
+                    label = container (widthOf elem + 10) title_height middle elem
                     sel b = if b then color lightCharcoal else id
                     toRender b = if b then submenus m else []
                 in lift2 (,) (lift2 sel isHovering (constant label))
@@ -56,8 +56,8 @@ render flowDirection submenuFlowDirection initialPadding inBetweenPadding ms = l
 
     allSubmenus = addSpacersAndRender <~ combine (map (lift renderSubmenu) rendered)
 
-    addSpacersAndRender menus = intersperse (spacer inBetweenPadding menu_height) menus
-            |> \ts -> spacer initialPadding menu_height :: ts
+    addSpacersAndRender menus = intersperse (spacer inBetweenPadding title_height) menus
+            |> \ts -> spacer initialPadding title_height :: ts
             |> flow flowDirection
 
     titles = lift (map fst) (combine rendered)
