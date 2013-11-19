@@ -39,12 +39,14 @@ renderTitle m = let (elem, isHovering) = hoverable <| plainText (title m)
                 in lift2 (,) (lift2 sel isHovering (constant label))
                              (lift  toRender isHovering)
 
-render1 : [Menu] -> Element
-render1 m = let labels = map (plainText . title) <| m
-                maxWidth = maximum <| map widthOf labels
-                items = map (\el -> (container (maxWidth + 20) item_height midLeft el)
-                                    |> color lightCharcoal) labels
-            in flow down items
+-- Takes a submenu and renders it
+renderItems : [Menu] -> Element
+renderItems m = let labels = map (plainText . title) <| m
+                    maxWidth = maximum <| map widthOf labels
+                    items : [(Element, Signal Bool)]
+                    items = map (\el -> (container (maxWidth + 20) item_height midLeft el)
+                                |> color lightCharcoal |> hoverable) labels
+                in flow down <| map fst items
 
 render : Direction -> Direction -> Int -> Int -> [Menu] -> Signal Element
 render flowDirection submenuFlowDirection initialPadding inBetweenPadding ms = let
@@ -52,7 +54,7 @@ render flowDirection submenuFlowDirection initialPadding inBetweenPadding ms = l
     rendered = map renderTitle ms
     renderSubmenu (elem, submenu) = case submenu of
             [] -> spacer (widthOf elem) 10
-            otherwise ->  render1 submenu
+            otherwise ->  renderItems submenu
 
     allSubmenus = addSpacersAndRender <~ combine (map (lift renderSubmenu) rendered)
 
