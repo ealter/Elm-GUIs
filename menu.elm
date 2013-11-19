@@ -33,9 +33,10 @@ desktop (w,h) = flow outward <|
 -- Takes a menu, renders its title, and returns the submenus to render
 renderTitle : Menu -> Signal (Element, [Menu])
 renderTitle m = let (elem, isHovering) = hoverable <| plainText (title m)
+                    label = container (widthOf elem + 10) menu_height middle elem
                     sel b = if b then color lightCharcoal else id
                     toRender b = if b then submenus m else []
-                in lift2 (,) (lift2 sel isHovering (constant elem))
+                in lift2 (,) (lift2 sel isHovering (constant label))
                              (lift  toRender isHovering)
 
 render1 : [Menu] -> Element
