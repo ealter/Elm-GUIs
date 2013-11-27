@@ -30,7 +30,10 @@ desktop (w,h) = flow outward <|
     [ spacer w h |> color lightGrey
     , spacer w title_height |> color darkGrey ]
 
--- Takes a menu, renders its title, and returns the submenus to render
+{- Takes a menu, renders its title, and returns the submenus to render
+   Also returns the width of the element, whether the element is being hovered
+   over, and the submenu of the element. The extra parameters (such as width)
+   are needed so that they can be used in "lifted" functions -}
 renderTitle : Menu -> (Signal Element, Int, Signal Bool, [Menu])
 renderTitle m = let (elem, isHovering) = hoverable <| plainText (title m)
                     label = container (widthOf elem + 10) title_height middle elem
@@ -41,9 +44,13 @@ renderTitle m = let (elem, isHovering) = hoverable <| plainText (title m)
                     isHovering,
                     submenus m)
 
--- Takes a submenu and renders it
-renderItems : Element -> Signal Bool -> [Menu] -> Signal Element
-renderItems blankElement parentHovered m = let
+{- * The first parameter denotes whether the submenu should be rendered at all.
+   * The second parameter is the default value for the element (i.e. when the
+     boolean signal evaluates to false)
+   * The third parameter is the submenu itself
+   * Returns the rendered submenu -}
+renderItems : Signal Bool -> Element -> [Menu] -> Signal Element
+renderItems parentHovered blankElement m = let
                     labels = map (plainText . title) <| m
                     maxWidth = maximum <| map widthOf labels
                     items : [(Element, Signal Bool)]
@@ -59,10 +66,10 @@ render flowDirection submenuFlowDirection initialPadding inBetweenPadding ms = l
     rendered : [(Signal Element, Int, Signal Bool, [Menu])]
     rendered = map renderTitle ms
     renderSubmenu (elem, elemWidth, isHovering, submenu) =
-        let blank = spacer elemWidth 10
+        let blank = spacer elemWidth 1
         in case submenu of
             [] -> constant blank
-            _  ->  renderItems blank isHovering submenu
+            _  ->  renderItems isHovering blank submenu
 
     allSubmenus = addSpacersAndRender <~ combine (map renderSubmenu rendered)
 
