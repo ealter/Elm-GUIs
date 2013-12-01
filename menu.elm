@@ -35,18 +35,17 @@ convertMenu (MenuSpecification title children) = let
 
 -- Calculates whether a submenu should be shown on the screen
 -- Parameters: parent, submenu
-isOnScreen : Maybe Menu -> [Menu] -> Signal Bool
-isOnScreen m children = let
-    hoveringMe = case m of
-                    Just parent -> hoverInfo parent
-                    Nothing -> constant False
+isOnScreen : Menu -> Signal Bool
+isOnScreen m = let
+    children = submenus m
+    hoveringMe = hoverInfo m
     hoveringChildren = lift or <| combine <| map hoverInfo children
     hoveringGrandchildren =
         if isEmpty children
         then constant False
         else lift or
             <| combine
-            <| map (\c -> isOnScreen (Just c) (submenus c)) children
+            <| map isOnScreen children
   in lift or <| combine [hoveringMe, hoveringChildren, hoveringGrandchildren]
 
 -- VIEW: Desktop and menu
@@ -73,7 +72,8 @@ renderItems : [Menu] -> Signal Element
 renderItems m = let labels = map menuElement <| m
                     maxWidth = maximum <| map widthOf labels
                     items : [Element]
-                    items = map (\el -> (container (maxWidth + 20) item_height midLeft el)
+                    --items = map (\el -> (container (maxWidth + 20) item_height midLeft el)
+                    items = map (\el -> (container (maxWidth + 20) (heightOf el) midLeft el)
                                 |> color lightCharcoal) labels
                 in constant <| flow down <| items
 
@@ -92,7 +92,7 @@ render flowDirection submenuFlowDirection initialPadding inBetweenPadding ms = l
     renderSubmenu : Menu -> Signal Element
     renderSubmenu m = 
         let blank = spacer (widthOf <| menuElement m) 1
-            shouldDisplay = isOnScreen (Just m) (submenus m)
+            shouldDisplay = isOnScreen m
         in case submenus m of
             [] -> constant blank
             _  ->  maybeDisplay shouldDisplay blank <| renderItems (submenus m)
@@ -104,7 +104,7 @@ render flowDirection submenuFlowDirection initialPadding inBetweenPadding ms = l
             |> flow flowDirection
 
     titles = lift addSpacersAndRender <| combine rendered
-        in lift (flow submenuFlowDirection) (combine [titles, allSubmenus])
+  in lift (flow submenuFlowDirection) (combine [titles, allSubmenus])
 
 renderTopLevel = render right down 10 15
 
