@@ -25,6 +25,9 @@ menuElement (Menu e _ _) = e
 hoverInfo : Menu -> Signal Bool
 hoverInfo (Menu _ h _) = h
 
+{- TODO: possible bug:
+      Since we're using plainText (instead of a container), this could
+      potentially mess up the hover information. -}
 convertMenu : MenuSpecification -> Menu
 convertMenu (MenuSpecification title children) = let
     (elem, hover) = hoverable <| plainText title
@@ -59,51 +62,48 @@ desktop (w,h) = flow outward <|
    Also returns the width of the element, whether the element is being hovered
    over, and the submenu of the element. The extra parameters (such as width)
    are needed so that they can be used in "lifted" functions -}
-renderTitle : Menu -> (Signal Element, Int, Signal Bool, [Menu])
-renderTitle m = let (elem, isHovering) = hoverable <| menuElement m
+renderTitle : Menu -> Signal Element
+renderTitle m = let (elem, isHovering) = (menuElement m, hoverInfo m)
                     label = container (widthOf elem + 10) title_height middle elem
                     sel b = if b then color lightCharcoal else id
-                    toRender b = if b then submenus m else []
-                in (lift2 sel isHovering (constant label),
-                    widthOf elem,
-                    isHovering,
-                    submenus m)
+                in lift2 sel isHovering (constant label)
 
-{- * The first parameter denotes whether the submenu should be rendered at all.
-   * The second parameter is the default value for the element (i.e. when the
-     boolean signal evaluates to false)
-   * The third parameter is the submenu itself
-   * Returns the rendered submenu -}
-renderItems : Signal Bool -> Element -> [Menu] -> Signal Element
-renderItems parentHovered blankElement m = let
-                    labels = map menuElement <| m
+-- Renders the submenu into an element
+renderItems : [Menu] -> Signal Element
+renderItems m = let labels = map menuElement <| m
                     maxWidth = maximum <| map widthOf labels
-                    items : [(Element, Signal Bool)]
+                    items : [Element]
                     items = map (\el -> (container (maxWidth + 20) item_height midLeft el)
-                                |> color lightCharcoal |> hoverable) labels
-                    fullMenu = flow down <| map fst items
-                    submenuIsHovered = lift or (combine (map snd items))
-                    shouldDisplay = lift2 (||) submenuIsHovered parentHovered
-                  in lift (\b -> if b then fullMenu else blankElement) shouldDisplay
+                                |> color lightCharcoal) labels
+                in constant <| flow down <| items
+
+-- Replaces the element with the default when the signal is false
+maybeDisplay : Signal Bool -> Element -> Signal Element -> Signal Element
+maybeDisplay shouldDisplay defaultElement elem = let
+        choose : Bool -> Element -> Element -> Element
+        choose b true false = if b then true else false
+    in lift3 choose shouldDisplay elem (constant defaultElement)
 
 render : Direction -> Direction -> Int -> Int -> [Menu] -> Signal Element
 render flowDirection submenuFlowDirection initialPadding inBetweenPadding ms = let
-    rendered : [(Signal Element, Int, Signal Bool, [Menu])]
+    rendered : [Signal Element]
     rendered = map renderTitle ms
-    renderSubmenu (elem, elemWidth, isHovering, submenu) =
-        let blank = spacer elemWidth 1
-        in case submenu of
+    
+    renderSubmenu : Menu -> Signal Element
+    renderSubmenu m = 
+        let blank = spacer (widthOf <| menuElement m) 1
+            shouldDisplay = isOnScreen (Just m) (submenus m)
+        in case submenus m of
             [] -> constant blank
-            _  ->  renderItems isHovering blank submenu
+            _  ->  maybeDisplay shouldDisplay blank <| renderItems (submenus m)
 
-    allSubmenus = addSpacersAndRender <~ combine (map renderSubmenu rendered)
+    allSubmenus = addSpacersAndRender <~ combine (map renderSubmenu ms)
 
     addSpacersAndRender menus = intersperse (spacer inBetweenPadding title_height) menus
             |> \ts -> spacer initialPadding title_height :: ts
             |> flow flowDirection
 
-    titles = combine (map (\(e, _, _, _) -> e) rendered)
-            |> lift addSpacersAndRender
+    titles = lift addSpacersAndRender <| combine rendered
         in lift (flow submenuFlowDirection) (combine [titles, allSubmenus])
 
 renderTopLevel = render right down 10 15
