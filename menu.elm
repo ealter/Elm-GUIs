@@ -2,24 +2,49 @@ import Window
 import Graphics.Input (hoverable)
 
 -- MODEL: Menu representation and monadic combinators
-data Menu = Menu String [Menu]
+data MenuSpecification = MenuSpecification String [MenuSpecification]
+data Menu = Menu Element (Signal Bool) [Menu]
 
-return : String -> Menu
-return s = Menu s []
+return : String -> MenuSpecification
+return s = MenuSpecification s []
 
-(>>=) : Menu -> Menu -> Menu
-(Menu t ms) >>= m2 = Menu t (ms ++ [m2])
+(>>=) : MenuSpecification -> MenuSpecification -> MenuSpecification
+(MenuSpecification t ms) >>= m2 = MenuSpecification t (ms ++ [m2])
 infixl 2 >>=
 
-(>>) : Menu -> String -> Menu
+(>>) : MenuSpecification -> String -> MenuSpecification
 m >> s = m >>= return s
 infixl 1 >>
 
-title : Menu -> String
-title (Menu t _) = t
-
 submenus : Menu -> [Menu]
-submenus (Menu _ ms) = ms
+submenus (Menu _ _ ms) = ms
+
+menuElement : Menu -> Element
+menuElement (Menu e _ _) = e
+
+hoverInfo : Menu -> Signal Bool
+hoverInfo (Menu _ h _) = h
+
+convertMenu : MenuSpecification -> Menu
+convertMenu (MenuSpecification title children) = let
+    (elem, hover) = hoverable <| plainText title
+  in Menu elem hover (map convertMenu children)
+
+-- Calculates whether a submenu should be shown on the screen
+-- Parameters: parent, submenu
+isOnScreen : Maybe Menu -> [Menu] -> Signal Bool
+isOnScreen m children = let
+    hoveringMe = case m of
+                    Just parent -> hoverInfo parent
+                    Nothing -> constant False
+    hoveringChildren = lift or <| combine <| map hoverInfo children
+    hoveringGrandchildren =
+        if isEmpty children
+        then constant False
+        else lift or
+            <| combine
+            <| map (\c -> isOnScreen (Just c) (submenus c)) children
+  in lift or <| combine [hoveringMe, hoveringChildren, hoveringGrandchildren]
 
 -- VIEW: Desktop and menu
 title_height = 20
@@ -35,7 +60,7 @@ desktop (w,h) = flow outward <|
    over, and the submenu of the element. The extra parameters (such as width)
    are needed so that they can be used in "lifted" functions -}
 renderTitle : Menu -> (Signal Element, Int, Signal Bool, [Menu])
-renderTitle m = let (elem, isHovering) = hoverable <| plainText (title m)
+renderTitle m = let (elem, isHovering) = hoverable <| menuElement m
                     label = container (widthOf elem + 10) title_height middle elem
                     sel b = if b then color lightCharcoal else id
                     toRender b = if b then submenus m else []
@@ -51,7 +76,7 @@ renderTitle m = let (elem, isHovering) = hoverable <| plainText (title m)
    * Returns the rendered submenu -}
 renderItems : Signal Bool -> Element -> [Menu] -> Signal Element
 renderItems parentHovered blankElement m = let
-                    labels = map (plainText . title) <| m
+                    labels = map menuElement <| m
                     maxWidth = maximum <| map widthOf labels
                     items : [(Element, Signal Bool)]
                     items = map (\el -> (container (maxWidth + 20) item_height midLeft el)
@@ -85,7 +110,7 @@ renderTopLevel = render right down 10 15
 
 -- MAIN
 menus : [Menu]
-menus =
+menus = map convertMenu
     [ return "Main" >> "About" >> "Check for Updates"
     , return "File" >>= (return "Save" >> "Save as...") >> "Edit"
     ]
