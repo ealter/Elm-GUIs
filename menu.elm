@@ -80,15 +80,15 @@ renderItems m = let labels = map menuElement <| m
 -- Replaces the element with the default when the signal is false
 maybeDisplay : Signal Bool -> Element -> Signal Element -> Signal Element
 maybeDisplay shouldDisplay defaultElement elem = let
-        choose : Bool -> Element -> Element -> Element
-        choose b true false = if b then true else false
+        choose : Bool -> a -> a -> a
+        choose b ifTrue ifFalse = if b then ifTrue else ifFalse
     in lift3 choose shouldDisplay elem (constant defaultElement)
 
 render : Direction -> Direction -> Int -> Int -> [Menu] -> Signal Element
 render flowDirection submenuFlowDirection initialPadding inBetweenPadding ms = let
     rendered : [Signal Element]
     rendered = map renderTitle ms
-    
+
     renderSubmenu : Menu -> Signal Element
     renderSubmenu m = 
         let blank = spacer (widthOf <| menuElement m) 1
