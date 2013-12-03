@@ -30,8 +30,10 @@ hoverInfo (Menu _ h _) = h
       potentially mess up the hover information. -}
 convertMenu : MenuSpecification -> Menu
 convertMenu (MenuSpecification title children) = let
-    (elem, hover) = hoverable <| plainText title
+    (elem, hover) = hoverable <| mkContainer <| plainText title
   in Menu elem hover (map convertMenu children)
+
+mkContainer elem = container (widthOf elem) (heightOf elem) middle elem
 
 -- Calculates whether a submenu should be shown on the screen
 -- Parameters: parent, submenu
