@@ -94,7 +94,8 @@ render flowDirection submenuFlowDirection initialPadding inBetweenPadding ms = l
     renderSubmenu : Menu -> Signal Element
     renderSubmenu m = 
         let blank = spacer (widthOf <| menuElement m) 1
-            shouldDisplay = isOnScreen m
+            onscreen = isOnScreen m
+            shouldDisplay = lift2 (||) onscreen <| delay (0.25*second) onscreen
         in case submenus m of
             [] -> constant blank
             _  ->  maybeDisplay shouldDisplay blank <| renderItems (submenus m)
