@@ -25,13 +25,30 @@ menuElement (Menu e _ _) = e
 hoverInfo : Menu -> Signal Bool
 hoverInfo (Menu _ h _) = h
 
-{- TODO: possible bug:
-      Since we're using plainText (instead of a container), this could
-      potentially mess up the hover information. -}
+{- Converts a menu specification into a menu. The top level of the menu is
+   horizontal, so the width of the elements are variable. At all sublevels, the
+   width of the elements depends on the maximum width of the elements in each
+   particular submenu. -}
 convertMenu : MenuSpecification -> Menu
-convertMenu (MenuSpecification title children) = let
-    (elem, hover) = hoverable <| plainText title
-  in Menu elem hover (map convertMenu children)
+convertMenu = let
+    topLevel : Element -> Element
+    topLevel elem = container (widthOf elem + 10) title_height middle elem
+
+    menuSpecTitle (MenuSpecification title _) = title
+
+    maxOrZero : [Int] -> Int
+    maxOrZero list = case list of
+        [] -> 0
+        _ -> maximum list
+
+    convert : (Element -> Element) -> MenuSpecification -> Menu
+    convert boxElement (MenuSpecification title children) = let
+        maxChildrenWidth = maxOrZero <| map (widthOf . plainText . menuSpecTitle) children
+        otherLevels elem = container (maxChildrenWidth + 20) (heightOf elem) midLeft elem
+                           |> color lightCharcoal
+        (elem, hover) = hoverable <| boxElement <| plainText title
+      in Menu elem hover (map (convert otherLevels) children)
+  in convert topLevel
 
 -- Calculates whether a submenu should be shown on the screen
 -- Parameters: parent, submenu
@@ -63,18 +80,14 @@ desktop (w,h) = flow outward <|
    are needed so that they can be used in "lifted" functions -}
 renderTitle : Menu -> Signal Element
 renderTitle m = let (elem, isHovering) = (menuElement m, isOnScreen m)
-                    label = container (widthOf elem + 10) title_height middle elem
                     sel b = if b then color lightCharcoal else id
-                in lift2 sel isHovering (constant label)
+                in lift2 sel isHovering (constant elem)
 
 -- Renders the submenu into an element
 renderItems : [Menu] -> Signal Element
 renderItems m = let labels = map menuElement <| m
                     maxWidth = maximum <| map widthOf labels
-                    items : [Element]
-                    items = map (\el -> (container (maxWidth + 20) (heightOf el) midLeft el)
-                                |> color lightCharcoal) labels
-                in constant <| flow down <| items
+                in constant <| flow down <| labels
 
 -- Replaces the element with the default when the signal is false
 maybeDisplay : Signal Bool -> Element -> Signal Element -> Signal Element
