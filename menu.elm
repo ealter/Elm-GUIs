@@ -85,9 +85,12 @@ renderTitle m = let (elem, isHovering) = (menuElement m, isOnScreen m)
 
 -- Renders the submenu into an element
 renderItems : [Menu] -> Signal Element
-renderItems m = let labels = map menuElement <| m
-                    maxWidth = maximum <| map widthOf labels
-                in constant <| flow down <| labels
+renderItems ms = let highlight : Bool -> Element -> Element
+                     highlight b = if b then color blue else id
+
+                     colored : Menu -> Signal Element
+                     colored m = lift2 highlight (hoverInfo m) (constant <| menuElement m)
+                in lift (flow down) (combine <| map colored ms)
 
 -- Replaces the element with the default when the signal is false
 maybeDisplay : Signal Bool -> Element -> Signal Element -> Signal Element
