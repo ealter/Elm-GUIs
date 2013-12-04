@@ -30,10 +30,8 @@ hoverInfo (Menu _ h _) = h
       potentially mess up the hover information. -}
 convertMenu : MenuSpecification -> Menu
 convertMenu (MenuSpecification title children) = let
-    (elem, hover) = hoverable <| mkContainer <| plainText title
+    (elem, hover) = hoverable <| plainText title
   in Menu elem hover (map convertMenu children)
-
-mkContainer elem = container (widthOf elem) (heightOf elem + 5) midBottom elem
 
 -- Calculates whether a submenu should be shown on the screen
 -- Parameters: parent, submenu
@@ -64,7 +62,7 @@ desktop (w,h) = flow outward <|
    over, and the submenu of the element. The extra parameters (such as width)
    are needed so that they can be used in "lifted" functions -}
 renderTitle : Menu -> Signal Element
-renderTitle m = let (elem, isHovering) = (menuElement m, hoverInfo m)
+renderTitle m = let (elem, isHovering) = (menuElement m, isOnScreen m)
                     label = container (widthOf elem + 10) title_height middle elem
                     sel b = if b then color lightCharcoal else id
                 in lift2 sel isHovering (constant label)
@@ -74,7 +72,6 @@ renderItems : [Menu] -> Signal Element
 renderItems m = let labels = map menuElement <| m
                     maxWidth = maximum <| map widthOf labels
                     items : [Element]
-                    --items = map (\el -> (container (maxWidth + 20) item_height midLeft el)
                     items = map (\el -> (container (maxWidth + 20) (heightOf el) midLeft el)
                                 |> color lightCharcoal) labels
                 in constant <| flow down <| items
@@ -91,19 +88,21 @@ render flowDirection submenuFlowDirection initialPadding inBetweenPadding ms = l
     rendered : [Signal Element]
     rendered = map renderTitle ms
 
-    renderSubmenu : Menu -> Signal Element
-    renderSubmenu m = 
-        let blank = spacer (widthOf <| menuElement m) 1
+    renderSubmenu : Menu -> Int -> Signal Element
+    renderSubmenu m parentWidth = 
+        let blank = spacer parentWidth 1
             onscreen = isOnScreen m
-            shouldDisplay = lift2 (||) onscreen <| delay (0.25*second) onscreen
+            --Warning: DIRTY HACK. Prevent a race condition of displaying a menu
+            --if you are hovering over it by adding a delay to the signal check
+            shouldDisplay = lift2 (||) onscreen <| delay (0.05*second) onscreen
         in case submenus m of
             [] -> constant blank
             _  ->  maybeDisplay shouldDisplay blank <| renderItems (submenus m)
 
-    allSubmenus = addSpacersAndRender <~ combine (map renderSubmenu ms)
+    allSubmenus = addSpacersAndRender <~ combine (zipWith renderSubmenu ms <| map (widthOf . menuElement) ms)
 
-    addSpacersAndRender menus = intersperse (spacer inBetweenPadding title_height) menus
-            |> \ts -> spacer initialPadding title_height :: ts
+    addSpacersAndRender menus = intersperse (spacer inBetweenPadding 1) menus
+            |> \ts -> spacer initialPadding 1 :: ts
             |> flow flowDirection
 
     titles = lift addSpacersAndRender <| combine rendered
