@@ -86,7 +86,7 @@ renderTitle m = let (elem, isHovering) = (menuElement m, isOnScreen m)
 -- Renders the submenu into an element
 renderItems : [Menu] -> Signal Element
 renderItems ms = let highlight : Bool -> Element -> Element
-                     highlight b = if b then color blue else id
+                     highlight b = if b then color lightBlue else id
 
                      colored : Menu -> Signal Element
                      colored m = lift2 highlight (hoverInfo m) (constant <| menuElement m)
