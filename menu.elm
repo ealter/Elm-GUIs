@@ -130,7 +130,11 @@ renderTopLevel = render right down 10 15
 menus : [Menu]
 menus = map convertMenu
     [ return "Main" >> "About" >> "Check for Updates"
-    , return "File" >>= (return "Save" >> "Save as...") >> "Edit"
+        >> "Preferences" >> "Hide" >> "Hide Others" >> "Quit"
+    , return "File" >> "New" >> "Open" >> "Recent Items" >> "Import" >>
+        "Export" >> "Save" >> "Save as..."
+    , return "Edit" >> "Cut" >> "Copy" >> "Paste" >> "Select All" >> "Find"
+    , return "Help" >> "Search Help" >> "Turn On Context Help"
     ]
 
 main = flow outward <~ combine
