@@ -1,144 +1,117 @@
 import Window
-import Graphics.Input (hoverable)
+import Graphics.Input (hoverables)
 
--- MODEL: Menu representation and monadic combinators
-data MenuSpecification = MenuSpecification String [MenuSpecification]
-data Menu = Menu Element (Signal Bool) [Menu]
+--{{{ TREE
+data Tree a = Tree a [Tree a]
 
-return : String -> MenuSpecification
-return s = MenuSpecification s []
+leaf : a -> Tree a
+leaf a = Tree a []
 
-(>>=) : MenuSpecification -> MenuSpecification -> MenuSpecification
-(MenuSpecification t ms) >>= m2 = MenuSpecification t (ms ++ [m2])
-infixl 2 >>=
+treeMap : (a -> b) -> Tree a -> Tree b
+treeMap f (Tree x y) = Tree (f x) (map (treeMap f) y)
 
-(>>) : MenuSpecification -> String -> MenuSpecification
-m >> s = m >>= return s
-infixl 1 >>
+treeZipWidth : (a -> b -> c) -> Tree a -> Tree b -> Tree c
+treeZipWidth f (Tree x1 y1) (Tree x2 y2) = Tree (f x1 x2) (zipWith (treeZipWidth f) y1 y2)
 
-submenus : Menu -> [Menu]
-submenus (Menu _ _ ms) = ms
+treeData : Tree a -> a
+treeData (Tree d _) = d
 
-menuElement : Menu -> Element
-menuElement (Menu e _ _) = e
+treeSubtree : Tree a -> [Tree a]
+treeSubtree (Tree _ t) = t
 
-hoverInfo : Menu -> Signal Bool
-hoverInfo (Menu _ h _) = h
+{- Converts a tree of signals into a signal of tree.
+   TODO: Make this more readable. -}
+extractTreeSignal : Tree (Signal a) -> Signal (Tree a)
+extractTreeSignal (Tree sb ts) = 
+    let recursed = combine <| map extractTreeSignal ts
+    in (\b r -> Tree b r) <~ sb ~ recursed
 
-{- Converts a menu specification into a menu. The top level of the menu is
-   horizontal, so the width of the elements are variable. At all sublevels, the
-   width of the elements depends on the maximum width of the elements in each
-   particular submenu. -}
-convertMenu : MenuSpecification -> Menu
-convertMenu = let
-    topLevel : Element -> Element
-    topLevel elem = container (widthOf elem + 10) title_height middle elem
+--}}}
 
-    menuSpecTitle (MenuSpecification title _) = title
+hoverablesSig : Signal Element -> (Signal Element, Signal Bool)
+hoverablesSig elem =
+    let pool = hoverables False
+    in (lift (pool.hoverable id) elem, pool.events)
 
-    maxOrZero : [Int] -> Int
-    maxOrZero list = case list of
-        [] -> 0
-        _ -> maximum list
+{- Steps:
+    1. Signal tree of hover info
+    2. bool tree -> [int]
+    3. tree (element, bool hoverInfo) -> [int] -> tree (element, bool isOnScreen)
+    4. tree (element, bool isOnScreen) -> tree (element or spacer)
+    5. tree(element) -> element
+-}
 
-    convert : (Element -> Element) -> MenuSpecification -> Menu
-    convert boxElement (MenuSpecification title children) = let
-        maxChildrenWidth = maxOrZero <| map (widthOf . plainText . menuSpecTitle) children
-        otherLevels elem = container (maxChildrenWidth + 20) (heightOf elem) midLeft elem
-                           |> color lightCharcoal
-        (elem, hover) = hoverable <| boxElement <| plainText title
-      in Menu elem hover (map (convert otherLevels) children)
-  in convert topLevel
+{- TODO: can this be made pure?
+   TODO: create the containers -}
+createElements : Tree (Signal String) -> Tree (Signal Element)
+createElements = treeMap (lift plainText)
 
--- Calculates whether a submenu should be shown on the screen
--- Parameters: parent, submenu
-isOnScreen : Menu -> Signal Bool
-isOnScreen m = let
-    children = submenus m
-    hoveringMe = hoverInfo m
-    hoveringChildren = lift or <| combine <| map hoverInfo children
-    hoveringGrandchildren =
-        if isEmpty children
-        then constant False
-        else lift or
-            <| combine
-            <| map isOnScreen children
-  in lift or <| combine [hoveringMe, hoveringChildren, hoveringGrandchildren]
+--Creates a signal with the element and its associated hover information
+extractHoverInfo : Tree (Signal Element) -> Signal (Tree (Element, Bool))
+extractHoverInfo elements =
+    let combineTuple (x, y) = lift2 (,) x y
+        elementsHover = treeMap (combineTuple . hoverablesSig) elements
+    in extractTreeSignal elementsHover
 
--- VIEW: Desktop and menu
-title_height = 20
-item_height = 30
+{- Takes in the element and the hover information. Returns the same element and
+   whether or not it should be displayed on the screen.
 
-desktop : (Int, Int) -> Element
-desktop (w,h) = flow outward <|
-    [ spacer w h |> color lightGrey
-    , spacer w title_height |> color darkGrey ]
+   Invariant: At most one of the input booleans is true (since only one element
+   can be hovered upon at a time). -}
+elementsOnScreen : Tree (Element, Bool) -> Tree (Element, Bool)
+elementsOnScreen menu =
+    let hovering : Tree (Element, Bool) -> Bool
+        hovering = snd . treeData
 
-{- Takes a menu, renders its title, and returns the submenus to render
-   Also returns the width of the element, whether the element is being hovered
-   over, and the submenu of the element. The extra parameters (such as width)
-   are needed so that they can be used in "lifted" functions -}
-renderTitle : Menu -> Signal Element
-renderTitle m = let (elem, isHovering) = (menuElement m, isOnScreen m)
-                    sel b = if b then color lightCharcoal else id
-                in lift2 sel isHovering (constant elem)
+        isOnScreen : Tree (Element, Bool) -> Bool
+        isOnScreen t =
+            let anyChild = or <| map hovering <| treeSubtree menu
+                anyGrandchildren = or <| map isOnScreen <| treeSubtree t
+            in or [hovering t, anyChild, anyGrandchildren]
 
--- Renders the submenu into an element
-renderItems : [Menu] -> Signal Element
-renderItems ms = let highlight : Bool -> Element -> Element
-                     highlight b = if b then color lightBlue else id
+    in Tree (fst <| treeData menu, isOnScreen menu)
+            (map elementsOnScreen <| treeSubtree menu)
 
-                     colored : Menu -> Signal Element
-                     colored m = lift2 highlight (hoverInfo m) (constant <| menuElement m)
-                in lift (flow down) (combine <| map colored ms)
+{- Renders the top level menu and all of its submenus -}
+renderTree : [Tree (Element, Bool)] -> Element
+renderTree menu =
+    let children : Tree (Element, Bool) -> [(Element, Bool)]
+        children t = map treeData <| treeSubtree t
 
--- Replaces the element with the default when the signal is false
-maybeDisplay : Signal Bool -> Element -> Signal Element -> Signal Element
-maybeDisplay shouldDisplay defaultElement elem = let
-        choose : Bool -> a -> a -> a
-        choose b ifTrue ifFalse = if b then ifTrue else ifFalse
-    in lift3 choose shouldDisplay elem (constant defaultElement)
+        shouldRenderChildren : Tree (Element, Bool) -> Bool
+        shouldRenderChildren m = or <| map snd <| children m
 
-render : Direction -> Direction -> Int -> Int -> [Menu] -> Signal Element
-render flowDirection submenuFlowDirection initialPadding inBetweenPadding ms = let
-    rendered : [Signal Element]
-    rendered = map renderTitle ms
+        horizontalSpacer : Element -> Element
+        horizontalSpacer elem = spacer (widthOf elem) 1
 
-    renderSubmenu : Menu -> Int -> Signal Element
-    renderSubmenu m parentWidth = 
-        let blank = spacer parentWidth 1
-            onscreen = isOnScreen m
-            --Warning: DIRTY HACK. Prevent a race condition of displaying a menu
-            --if you are hovering over it by adding a delay to the signal check
-            shouldDisplay = lift2 (||) onscreen <| delay (0.05*second) onscreen
-        in case submenus m of
-            [] -> constant blank
-            _  ->  maybeDisplay shouldDisplay blank <| renderItems (submenus m)
+        colorIfHighlighted : (Element, Bool) -> Element
+        colorIfHighlighted (elem, high) = if high then color blue elem else elem
 
-    allSubmenus = addSpacersAndRender <~ combine (zipWith renderSubmenu ms <| map (widthOf . menuElement) ms)
+        --TODO: work with depth > 2
+        renderSubmenu : Tree (Element, Bool) -> Element
+        renderSubmenu submenu =
+            if shouldRenderChildren submenu
+            then flow down <| map colorIfHighlighted <| children submenu
+            else horizontalSpacer <| fst <| treeData submenu
+        
+        --TODO: add spacing between the elements
+        renderTopMenu : Element
+        renderTopMenu = flow down [flow right <| map (fst . treeData) menu, 
+                                   flow right <| map renderSubmenu menu]
+    in renderTopMenu
 
-    addSpacersAndRender menus = intersperse (spacer inBetweenPadding 1) menus
-            |> \ts -> spacer initialPadding 1 :: ts
-            |> flow flowDirection
+renderSpec : [Tree (Signal String)] -> Signal Element
+renderSpec t =
+    let elements : [Signal (Tree (Element, Bool))]
+        elements = map (extractHoverInfo . createElements) t
 
-    titles = lift addSpacersAndRender <| combine rendered
-  in lift (flow submenuFlowDirection) (combine [titles, allSubmenus])
+        rendered : [Tree (Element, Bool)] -> Element
+        rendered tree = renderTree <| map elementsOnScreen tree
+    in lift rendered <| combine elements
 
-renderTopLevel = render right down 10 15
+menus : [Tree String]
+menus = [Tree "Main" [leaf "About", leaf "Updates"],
+         Tree "File" [leaf "New", leaf "Open"]]
 
--- MAIN
-menus : [Menu]
-menus = map convertMenu
-    [ return "Main" >> "About" >> "Check for Updates"
-        >> "Preferences" >> "Hide" >> "Hide Others" >> "Quit"
-    , return "File" >> "New" >> "Open" >> "Recent Items" >> "Import" >>
-        "Export" >> "Save" >> "Save as..."
-    , return "Edit" >> "Cut" >> "Copy" >> "Paste" >> "Select All" >> "Find"
-    , return "Help" >> "Search Help" >> "Turn On Context Help"
-    ]
-
-main = flow outward <~ combine
-    [ desktop <~ Window.dimensions
-    , renderTopLevel menus
-    ]
+main = renderSpec <| map (treeMap constant) menus
 
