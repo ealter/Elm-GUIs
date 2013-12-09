@@ -65,10 +65,11 @@ We contribute:
  operate in its presence.
 
 Section 2 introduces Elm, signals, and the prohibition on signals of signals. It
-may be skipped by those already familiar with those topics. Section 3 presents a
-first attempt at a menu and details the issue we encountered. Section 4 presents
-Elm's hover detection for DOM elements and how it can be extended to meet our
-needs. Section 5 analyzes TodoFRP. Section 6 explains our menu implementation in
+is targeted to readers familiar with functional programming but not FRP, and may
+be skipped by those already familiar with Elm. Section 3 presents a first
+attempt at a menu and details the issue we encountered. Section 4 presents Elm's
+hover detection for DOM elements and how it can be extended to meet our needs.
+Section 5 analyzes TodoFRP. Section 6 explains our menu implementation in
 detail. Section 7 concludes with a notice to the Elm community.
 
 Sentences that need a home:
@@ -77,17 +78,63 @@ This paper uses both general, theory-bound techniques and practical hacks to
 achieve its goals.
 
 ###Signals: Time-varying values
-Elm: compilation, runtime, implementation details
+
+Elm compiles down to JavaScript to run in the browser. Executing Elm programs
+requires the compiled code as well as `elm-runtime.js` which is included with
+the compiler.
+
+A typical functional program (e.g. in Haskell) is *transformative*: all input is
+available at the start of execution, and after a hopefully finite amount of time
+the program terminates with some output. Elm programs are *reactive*: not all
+input is available immediately, and the program may adjust output with each
+input indefnitely. Simple programs may be pure, with the output at a given time
+determined fully by the inputs at that time. However, Elm also has methods of
+remembering time-varying state in an impure way.
+
+A time-varying value of a polymorphic `a` is represented by `Signal a`. For
+example, the term `constant 150` has type `Signal Int`. The combinator
+`constant` creates a signal whose value never changes. A more interesting signal
+is `Mouse.position : Signal (Int, Int)` (the `:` operator means "has type").
+This signal provides the mouse coordinate and updates whenever the mouse moves.
+Signals are asynchronous in that they update at no set time, just as the mouse
+may remain stationary for any amount of time. Signals update in discrete events,
+but are continuous in that they are always defined.
+
+We can lift a pure function on to a signal:
+
+````
+area : Signal Int
+area = lift (uncurry (*)) Mouse.position
+````
+
+In this case, the lifted function is multiplication, uncurried as to operate on
+pairs. The `area` signal we defined is the area of of the axis-aligned square
+whose diagonal is `(0,0)` (the top-left corner) and the current mouse position.
+Lifted functions are reevaluated whenever one of its input signals has an event,
+producing an event on the output signal, which may in turn be lifted into
+one or more functions. Events propogate until that is no longer the case.
+
+We can print the current area to the screen with `main = lift asText area`. The
+primitive `asText : a -> Element` renders almost anything into an Element,
+which represents a DOM element. **Footnote** *Those following along in an Elm
+compiler, such as the one available at `elm-lang.org/try`, should add `import
+Mouse` to the top of the file.*
+
 State
 No signals of signals
 PLDI quote that's unclear
-join
 
-###A Naive Menu
+To a Haskeller, this means signals are functors (and in fact applicative
+functors) but not monads, as monads support the following operation:
+join
+Such an operation for signals would condence a `Signal (Signal a)` into a mere
+`Signal a`, but it cannot exist in general. 
+
+###A Naïve Menu
 Briefly, what is the problem we run in to? Why is this whole paper non-trivial?
 
 Now that we've established basic knowledge of Elm, we can rephrase the
-description of menus in terms of signals, and illustrate the a naive approach
+description of menus in terms of signals, and illustrate the a naïve approach
 encounters signals of signals.
 
 ###A tour of Graphics.Input
