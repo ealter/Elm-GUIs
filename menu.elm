@@ -1,39 +1,7 @@
 import Window
 import Graphics.Input (hoverables)
-
---{{{ TREE
-data Tree a = Tree a [Tree a]
-
-leaf : a -> Tree a
-leaf a = Tree a []
-
-treeMap : (a -> b) -> Tree a -> Tree b
-treeMap f (Tree x y) = Tree (f x) (map (treeMap f) y)
-
-treeZipWidth : (a -> b -> c) -> Tree a -> Tree b -> Tree c
-treeZipWidth f (Tree x1 y1) (Tree x2 y2) = Tree (f x1 x2) (zipWith (treeZipWidth f) y1 y2)
-
-treeData : Tree a -> a
-treeData (Tree d _) = d
-
-treeSubtree : Tree a -> [Tree a]
-treeSubtree (Tree _ t) = t
-
-{- Converts a tree of signals into a signal of tree.
-   TODO: Make this more readable. -}
-extractTreeSignal : Tree (Signal a) -> Signal (Tree a)
-extractTreeSignal (Tree sb ts) = 
-    let recursed = combine <| map extractTreeSignal ts
-    in Tree <~ sb ~ recursed
---}}}
-
-hoverablesSig : Signal Element -> (Signal Element, Signal Bool)
-hoverablesSig elem =
-    let pool = hoverables False
-    in (lift (pool.hoverable id) elem, pool.events)
-
-delayFalse : Signal Bool -> Signal Bool
-delayFalse b = lift2 (||) b <| delay (0.05 * second) b
+import open Tree
+import open SignalTricks
 
 {- Steps:
     1. Signal tree of hover info
@@ -138,9 +106,9 @@ renderSpec t =
         rendered tree = renderTree tree
     in lift rendered <| combine elements
 
-menus : [Tree String]
-menus = [Tree "Main" [leaf "About", leaf "Updates"],
+menuSpec : [Tree String]
+menuSpec = [Tree "Main" [leaf "About", leaf "Updates"],
          Tree "File" [leaf "New", leaf "Open"]]
 
-main = renderSpec <| map (treeMap constant) menus
+main = renderSpec <| map (treeMap constant) menuSpec
 
