@@ -1,3 +1,5 @@
+module Menu (renderMenu) where
+
 import Window
 import Graphics.Input (hoverables)
 import open Tree
@@ -98,18 +100,12 @@ renderTree menu =
                           flowLevel <| map renderSubmenu highlights]
     in renderTopMenu
 
-renderSpec : [Tree (Signal String)] -> Signal Element
-renderSpec t =
+renderMenu : [Tree (Signal String)] -> Signal Element
+renderMenu t =
     let elements : [Signal (Tree (Element, Bool))]
         elements = map (extractHoverInfo . createElements) t
 
         rendered : [Tree (Element, Bool)] -> Element
         rendered tree = renderTree tree
     in lift rendered <| combine elements
-
-menuSpec : [Tree String]
-menuSpec = [Tree "Main" [leaf "About", leaf "Updates"],
-            Tree "File" [leaf "New", leaf "Open"]]
-
-main = renderSpec <| map (treeMap constant) menuSpec
 
