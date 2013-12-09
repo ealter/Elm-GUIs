@@ -15,18 +15,20 @@ technique to address the issue without modifying the Elm compiler. It
 generalizes to other functions in Elm's Graphics.Input library, which includes
 (besides hover detection) GUI mainstays such as buttons, checkboxes, and text
 fields. We also contribute techniques for the representation and display of
-menus in Elm, and contrast our work with an existing Elm web app.
+menus in Elm, and demonstrate our work with an existing Elm web application.
 
 ###Introduction
 Elm was introduced in March 2012 in Evan Czaplicki's senior thesis, "Concurrent
-FRP for GUIs". He and his advisor, Stephen Chong, published "Asynchronous FRP
+FRP for GUIs". He and his adviser, Stephen Chong, published "Asynchronous FRP
 for GUIs" at PLDI 2013. Both papers are comprehensive overviews of Elm, and
 additionally provide excellent literature reviews of previous FRP GUI endeavors,
 of which there are several.
 
+<!-- Should we discuss what a signal is earlier? -->
+
 We chose menus as an example GUI to implement in Elm. The particular design
 places the top-level menu at the top of the screen, similar to Mac OS X and many
-Linux distros, with selections coming down from the top. Menus extend when the
+Linux distributions, with selections coming down from the top. Menus extend when the
 top-level item is hovered upon, and remain extended while the mouse hovers over
 any item in the menu. Therefore it is necessary to know hover information about
 each menu item. This time-varying information is also used to detect selections
@@ -36,11 +38,11 @@ task of managing time-varying hover information about time-varying areas.
 
 There are two features of Elm we are deliberately avoiding. First is the
 extensive raster drawing library, Graphics.Collage. Dynamic hover detection is
-not problematic when using this library because it can be done purely on each
-frame from the geometry. However, if we used this library, our GUI would be a
+not problematic when using this library because it can be done purely through
+manual collision detection. However, if we used this library, our GUI would be a
 single raster animation and not a DOM tree. Secondly, the Graphics.Input library
 contains wrappers around HTML checkboxes and dropdowns. While we refer to these
-to show how the technique we develop for hovering genralizes, we avoid them when
+to show how the technique we develop for hovering generalizes, we avoid them when
 constructing our menus.
 
 It is difficult for the authors to assess what level of knowledge should be
@@ -59,11 +61,12 @@ We contribute:
  the Elm compiler or runtime, and that generalizes to other functions in
  Graphics.Input.
 * An implementation of desktop-style menu in Elm, which incorporates several
- noteworthy "tricks". Eliot, expand here please.
+ noteworthy "tricks". <!-- Should we describe them here, or later? -->
 * An analysis of TodoFRP, the current state-of-the-art in dynamic Elm GUIs. We
  demonstrate how it operates in the absence of our technique, and how it could
  operate in its presence.
 
+<!-- TODO: when we do LaTeX, make sure these are actually section references -->
 Section 2 introduces Elm, signals, and the prohibition on signals of signals. It
 is targeted to readers familiar with functional programming but not FRP, and may
 be skipped by those already familiar with Elm. Section 3 presents a first
@@ -81,26 +84,33 @@ achieve its goals.
 
 Elm compiles down to JavaScript to run in the browser. Executing Elm programs
 requires the compiled code as well as `elm-runtime.js` which is included with
-the compiler. *Put this someplace else?*
+the compiler.
+<!-- Put this in the introduction? Don't talk about `elm-runtime.js`?  -->
 
 A typical functional program (e.g. in Haskell) is *transformative*: all input is
 available at the start of execution, and after a hopefully finite amount of time
-the program terminates with some output. Elm programs are *reactive*: not all
-input is available immediately, the program may adjust output with each
-input, and do so indefnitely. Simple programs may be pure, with the output at a
-given time determined fully by the inputs at that time. However, Elm also has
-methods of remembering time-varying state in an impure way.
+the program terminates with some output. In contrast, Elm programs are
+*reactive*: not all input is available immediately and the program may
+indefinitely adjust output with each input. Simple programs may be pure, with
+the output remaining constant. However, Elm also has methods of remembering
+time-varying state in an impure way.
 
 A time-varying value of a polymorphic `a` is represented by `Signal a`. For
 example, the term `constant 150` has type `Signal Int`. The combinator
 `constant` creates a signal whose value never changes. A more interesting signal
-is the primitive `Mouse.position : Signal (Int, Int)` (the `:` operator means
-"has type"). This signal represents the mouse coordinate and updates whenever
+is the primitive `Mouse.position : Signal (Int, Int)`.
+This signal represents the mouse coordinate and updates whenever
 the mouse moves. Signals are asynchronous in that they update at no set time,
 just as the mouse may remain stationary for any amount of time. Signals update
-in discrete events, but are continuous in that they are always defined.
+in discrete events, but are continuous in the sense that they are always defined.
 
-We can lift a pure function on to a signal:
+The function `lift` allows us to execute a pure function on a signal.
+
+````
+lift : (a -> b) -> Signal a -> Signal b
+```
+
+For example, we can multiply the `x` and `y` coordinates of the mouse position.
 
 ````
 area : Signal Int
