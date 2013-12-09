@@ -30,7 +30,7 @@ createElements spec =
                 elems = map treeData tree
 
                 maxWidth : Signal Int
-                maxWidth = lift (\e -> maxOrZero <| map widthOf e) (combine elems)
+                maxWidth = lift (\e -> map widthOf e |> maxOrZero) (combine elems)
 
                 addContainer : Int -> Element -> Element
                 addContainer w e = color lightCharcoal
@@ -40,9 +40,9 @@ createElements spec =
                 makeTree t = Tree (lift2 addContainer maxWidth <| treeData t)
                                   (subLevels <| treeSubtree t)
             in map makeTree tree
-        
+
         allLevels : Tree (Signal Element) -> Tree (Signal Element)
-        allLevels t = Tree (lift topLevel <| treeData t)
+        allLevels t = Tree (topLevel <~ treeData t)
                            (subLevels <| treeSubtree t)
     in allLevels <| treeMap (lift plainText) spec
 
@@ -67,7 +67,8 @@ isOnScreen t =
         anyGrandchildren = or <| map isOnScreen <| treeSubtree t
     in or [hovering t, anyChild, anyGrandchildren]
 
-{- Renders the top level menu and all of its submenus -}
+{- Renders the top level menu and all of its submenus. Notice that this is a
+   pure function (no signals). -}
 renderTree : [Tree (Element, Bool)] -> Element
 renderTree menu =
     let children : Tree (Element, Bool) -> [(Element, Bool)]
@@ -90,22 +91,21 @@ renderTree menu =
         renderSubmenus : (Element -> Element) -> Tree (Element, Bool) -> Element
         renderSubmenus blank submenu =
             if isOnScreen submenu
-            then flow right [renderSubmenu submenu,
-                             flow down
-                          <| map (renderSubmenus verticalSpacer)
-                          <| treeSubtree submenu]
-            else blank <| fst <| treeData submenu
-        
-        flowLevel : [Element] -> Element
-        flowLevel = flow right
+            then flow right [ renderSubmenu submenu
+                            , flow down
+                                  <| map (renderSubmenus verticalSpacer)
+                                  <| treeSubtree submenu
+                            ]
+            else blank . fst . treeData <| submenu
 
         renderTopMenu : Element
         renderTopMenu =
             let highlights = map (treeMap colorIfHighlighted) menu
                 topLevel = map (fst . treeData) highlights
                 nextLevel = map (renderSubmenus horizontalSpacer) highlights
-            in flow down [flowLevel <| topLevel,
-                          flowLevel <| nextLevel]
+            in flow down [ flow right topLevel
+                         , flow right nextLevel
+                         ]
     in renderTopMenu
 
 renderMenu : [Tree (Signal String)] -> Signal Element
@@ -115,5 +115,5 @@ renderMenu t =
 
         rendered : [Tree (Element, Bool)] -> Element
         rendered tree = renderTree tree
-    in lift rendered <| combine elements
+    in rendered <~ combine elements
 

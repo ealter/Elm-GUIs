@@ -19,7 +19,7 @@ treeSubtree (Tree _ t) = t
 
 {- Converts a tree of signals into a signal of tree. -}
 extractTreeSignal : Tree (Signal a) -> Signal (Tree a)
-extractTreeSignal (Tree sb ts) = 
+extractTreeSignal (Tree sa ts) =
     let recursed = combine <| map extractTreeSignal ts
-    in lift2 Tree sb recursed
+    in lift2 Tree sa recursed
 
