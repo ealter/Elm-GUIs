@@ -50,7 +50,7 @@ createElements spec =
 extractHoverInfo : Tree (Signal Element) -> Signal (Tree (Element, Bool))
 extractHoverInfo elements =
     let makeNode (x, y) = lift2 (,) x (delayFalse y)
-        elementsHover = treeMap (makeNode . hoverablesSig) elements
+        elementsHover = treeMap (makeNode . hoverablesJoin) elements
     in extractTreeSignal elementsHover
 
 {- Takes in the element and the hover information. Returns whether or not its
