@@ -18,7 +18,30 @@ fields. We also contribute techniques for the representation and display of
 menus in Elm, and contrast our work with an existing Elm web app.
 
 ###Introduction
-Why we're not doing a lit review: a brief history of Elm.
+Elm was introduced in March 2012 in Evan Czaplicki's senior thesis, "Concurrent
+FRP for GUIs". He and his advisor, Stephen Chong, published "Asynchronous FRP
+for GUIs" at PLDI 2013. Both papers are comprehensive overviews of Elm, and
+additionally provide excellent literature reviews of previous FRP GUI endeavors,
+of which there are several.
+
+We chose menus as an example GUI to implement in Elm. The particular design
+places the top-level menu at the top of the screen, similar to Mac OS X and many
+Linux distros, with selections coming down from the top. Menus extend when the
+top-level item is hovered upon, and remain extended while the mouse hovers over
+any item in the menu. Therefore it is necessary to know hover information about
+each menu item. This time-varying information is also used to detect selections
+upon click and highlight the moused-over item. It is simple to do this when the
+hover-detecting area is constant. Our paper describes the much more difficult
+task of managing time-varying hover information about time-varying areas.
+
+There are two features of Elm we are deliberately avoiding. First is the
+extensive raster drawing library, Graphics.Collage. Dynamic hover detection is
+not problematic when using this library because it can be done purely on each
+frame from the geometry. However, if we used this library, our GUI would be a
+single raster animation and not a DOM tree. Secondly, the Graphics.Input library
+contains wrappers around HTML checkboxes and dropdowns. While we refer to these
+to show how the technique we develop for hovering genralizes, we avoid them when
+constructing our menus.
 
 It is difficult for the authors to assess what level of knowledge should be
 assumed on the part of the reader. Firstly, readers will range from Elm's
@@ -29,17 +52,6 @@ either the problem we identify nor its solution, we cannot know for certain that
 either are novel. We continue in the hopes of presenting new and non-trivial
 techniques to the Elm community.
 
-GUIs, why we chose menus. Hover detection becomes key.
-
-There are two features of Elm we are deliberately avoiding. First is the
-extensive raster drawing library, Graphics.Collage. Dynamic hover detection is
-not problematic when using this library because it can be done purely on each
-frame from the geometry. However, if we used this library, our GUI would be a
-single raster animation and not a DOM tree. Secondly, the Graphics.Input library
-contains wrappers around HTML checkboxes and dropdowns. While we refer to these
-to show the generality of our technique, we avoid them when constructing our
-menus.
-
 We contribute:
 
 * The identification of an apparent limitation in Elm's hover detection library,
@@ -49,18 +61,20 @@ We contribute:
 * An implementation of desktop-style menu in Elm, which incorporates several
  noteworthy "tricks". Eliot, expand here please.
 * An analysis of TodoFRP, the current state-of-the-art in dynamic Elm GUIs. We
- demonstrate how it operates in the absence of our technique, and how it would
- apply.
+ demonstrate how it operates in the absence of our technique, and how it could
+ operate in its presence.
 
-Section 1 introduces Elm, signals, and the prohibition on signals of signals. It
-may be skipped by those already familiar with those topics. Section 2 presents a
-first attempt at a menu and details the issue we encountered. Section 3 presents
+Section 2 introduces Elm, signals, and the prohibition on signals of signals. It
+may be skipped by those already familiar with those topics. Section 3 presents a
+first attempt at a menu and details the issue we encountered. Section 4 presents
 Elm's hover detection for DOM elements and how it can be extended to meet our
-needs. Section 4 analyzes TodoFRP. Section 5 explains our menu implementation in
-detail. Section 6 concludes with a notice to the Elm community.
+needs. Section 5 analyzes TodoFRP. Section 6 explains our menu implementation in
+detail. Section 7 concludes with a notice to the Elm community.
 
-This sentence needs a home:
+Sentences that need a home:
 We have opted for clarity and thoroughness over brevity.
+This paper uses both general, theory-bound techniques and practical hacks to
+achieve its goals.
 
 ###Signals: Time-varying values
 Elm: compilation, runtime, implementation details
@@ -71,6 +85,10 @@ join
 
 ###A Naive Menu
 Briefly, what is the problem we run in to? Why is this whole paper non-trivial?
+
+Now that we've established basic knowledge of Elm, we can rephrase the
+description of menus in terms of signals, and illustrate the a naive approach
+encounters signals of signals.
 
 ###A tour of Graphics.Input
 Hoverable, hoverables, and the forum post
@@ -139,11 +157,25 @@ Or however you want to present the actual menus. Your section, Eliot.
 Three dirty tricks: spacers, ORing with parent, ORing with delay
 State in the DOM, not foldp or Automatons, "Elm's implentation of Arrowized FRP"
 How general?
+If the menu structure is known statically, then it is possible to create menus
+without hoverableJoin. However, in the general case menu structure is not known
+statically, and may even change as the program executes, for example when a
+different application becomes active. (Dynamic structure vs. dynamic strings?)
 
 others sections....?
 
 ###Conclusion: To the Elm Community
 "of service"
+It's true that we've used the hoverables function in a way that it was
+(probably) never meant to be used, and there are some caveats involved in doing
+so. Many small GUIs do not require dynamic, hover-detecting elements. However,
+most large mouse-based GUIs do, and creating them in Elm will necessarily
+encounter the obstacles we have described.
+
+Although we have implemented all of this without language modifications, it is
+hoped that as the community becomes more familiar with functional GUIs, new
+libraries are added to incorporate or obsolete some of our tricks.
+
 
 ###Acknowledgements
 ###References
