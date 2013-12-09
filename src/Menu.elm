@@ -7,10 +7,9 @@ import open SignalTricks
 
 {- Steps:
     1. Signal tree of hover info
-    2. bool tree -> [int]
-    3. tree (element, bool hoverInfo) -> [int] -> tree (element, bool isOnScreen)
-    4. tree (element, bool isOnScreen) -> tree (element or spacer)
-    5. tree(element) -> element
+    2. tree (element, bool hoverInfo) -> tree (element, bool isOnScreen)
+    3. tree (element, bool isOnScreen) -> tree (element or spacer)
+    4. tree(element) -> element
 -}
 
 createElements : Tree (Signal String) -> Tree (Signal Element)
@@ -54,8 +53,8 @@ extractHoverInfo elements =
         elementsHover = treeMap (makeNode . hoverablesSig) elements
     in extractTreeSignal elementsHover
 
-{- Takes in the element and the hover information. Returns the same element and
-   whether or not it should be displayed on the screen.
+{- Takes in the element and the hover information. Returns whether or not its
+   children should be displayed on the screen.
 
    Invariant: At most one of the input booleans is true (since only one element
    can be hovered upon at a time). -}
@@ -77,27 +76,36 @@ renderTree menu =
         horizontalSpacer : Element -> Element
         horizontalSpacer elem = spacer (widthOf elem) 1
 
+        verticalSpacer : Element -> Element
+        verticalSpacer elem = spacer 1 (heightOf elem)
+
         colorIfHighlighted : (Element, Bool) -> (Element, Bool)
         colorIfHighlighted (elem, high) = if high
                                           then (color lightBlue elem, high)
                                           else (elem, high)
 
-        --TODO: work with depth > 2
         renderSubmenu : Tree (Element, Bool) -> Element
-        renderSubmenu submenu =
+        renderSubmenu submenu = flow down <| map fst <| children submenu
+
+        renderSubmenus : (Element -> Element) -> Tree (Element, Bool) -> Element
+        renderSubmenus blank submenu =
             if isOnScreen submenu
-            then flow down <| map fst <| children submenu
-            else horizontalSpacer <| fst <| treeData submenu
+            then flow right [renderSubmenu submenu,
+                             flow down
+                          <| map (renderSubmenus verticalSpacer)
+                          <| treeSubtree submenu]
+            else blank <| fst <| treeData submenu
         
         flowLevel : [Element] -> Element
         flowLevel = flow right
 
-        --TODO: add spacing between the elements
         renderTopMenu : Element
         renderTopMenu =
             let highlights = map (treeMap colorIfHighlighted) menu
-            in flow down [flowLevel <| map (fst . treeData) highlights, 
-                          flowLevel <| map renderSubmenu highlights]
+                topLevel = map (fst . treeData) highlights
+                nextLevel = map (renderSubmenus horizontalSpacer) highlights
+            in flow down [flowLevel <| topLevel,
+                          flowLevel <| nextLevel]
     in renderTopMenu
 
 renderMenu : [Tree (Signal String)] -> Signal Element
