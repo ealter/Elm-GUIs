@@ -24,14 +24,16 @@ treeSubtree (Tree _ t) = t
 extractTreeSignal : Tree (Signal a) -> Signal (Tree a)
 extractTreeSignal (Tree sb ts) = 
     let recursed = combine <| map extractTreeSignal ts
-    in (\b r -> Tree b r) <~ sb ~ recursed
-
+    in Tree <~ sb ~ recursed
 --}}}
 
 hoverablesSig : Signal Element -> (Signal Element, Signal Bool)
 hoverablesSig elem =
     let pool = hoverables False
     in (lift (pool.hoverable id) elem, pool.events)
+
+delayFalse : Signal Bool -> Signal Bool
+delayFalse b = lift2 (||) b <| delay (0.05 * second) b
 
 {- Steps:
     1. Signal tree of hover info
@@ -49,8 +51,8 @@ createElements = treeMap (lift plainText)
 --Creates a signal with the element and its associated hover information
 extractHoverInfo : Tree (Signal Element) -> Signal (Tree (Element, Bool))
 extractHoverInfo elements =
-    let combineTuple (x, y) = lift2 (,) x y
-        elementsHover = treeMap (combineTuple . hoverablesSig) elements
+    let makeNode (x, y) = lift2 (,) x (delayFalse y)
+        elementsHover = treeMap (makeNode . hoverablesSig) elements
     in extractTreeSignal elementsHover
 
 {- Takes in the element and the hover information. Returns the same element and
@@ -58,19 +60,14 @@ extractHoverInfo elements =
 
    Invariant: At most one of the input booleans is true (since only one element
    can be hovered upon at a time). -}
-elementsOnScreen : Tree (Element, Bool) -> Tree (Element, Bool)
-elementsOnScreen menu =
+isOnScreen : Tree (Element, Bool) -> Bool
+isOnScreen t =
     let hovering : Tree (Element, Bool) -> Bool
         hovering = snd . treeData
 
-        isOnScreen : Tree (Element, Bool) -> Bool
-        isOnScreen t =
-            let anyChild = or <| map hovering <| treeSubtree menu
-                anyGrandchildren = or <| map isOnScreen <| treeSubtree t
-            in or [hovering t, anyChild, anyGrandchildren]
-
-    in Tree (fst <| treeData menu, isOnScreen menu)
-            (map elementsOnScreen <| treeSubtree menu)
+        anyChild = or <| map hovering <| treeSubtree t
+        anyGrandchildren = or <| map isOnScreen <| treeSubtree t
+    in or [hovering t, anyChild, anyGrandchildren]
 
 {- Renders the top level menu and all of its submenus -}
 renderTree : [Tree (Element, Bool)] -> Element
@@ -78,26 +75,30 @@ renderTree menu =
     let children : Tree (Element, Bool) -> [(Element, Bool)]
         children t = map treeData <| treeSubtree t
 
-        shouldRenderChildren : Tree (Element, Bool) -> Bool
-        shouldRenderChildren m = or <| map snd <| children m
-
         horizontalSpacer : Element -> Element
         horizontalSpacer elem = spacer (widthOf elem) 1
 
-        colorIfHighlighted : (Element, Bool) -> Element
-        colorIfHighlighted (elem, high) = if high then color blue elem else elem
+        colorIfHighlighted : (Element, Bool) -> (Element, Bool)
+        colorIfHighlighted (elem, high) = if high
+                                          then (color lightBlue elem, high)
+                                          else (elem, high)
 
         --TODO: work with depth > 2
         renderSubmenu : Tree (Element, Bool) -> Element
         renderSubmenu submenu =
-            if shouldRenderChildren submenu
-            then flow down <| map colorIfHighlighted <| children submenu
+            if isOnScreen submenu
+            then flow down <| map fst <| children submenu
             else horizontalSpacer <| fst <| treeData submenu
         
+        flowLevel : [Element] -> Element
+        flowLevel = flow right
+
         --TODO: add spacing between the elements
         renderTopMenu : Element
-        renderTopMenu = flow down [flow right <| map (fst . treeData) menu, 
-                                   flow right <| map renderSubmenu menu]
+        renderTopMenu =
+            let highlights = map (treeMap colorIfHighlighted) menu
+            in flow down [flowLevel <| map (fst . treeData) highlights, 
+                          flowLevel <| map renderSubmenu highlights]
     in renderTopMenu
 
 renderSpec : [Tree (Signal String)] -> Signal Element
@@ -106,7 +107,7 @@ renderSpec t =
         elements = map (extractHoverInfo . createElements) t
 
         rendered : [Tree (Element, Bool)] -> Element
-        rendered tree = renderTree <| map elementsOnScreen tree
+        rendered tree = renderTree tree
     in lift rendered <| combine elements
 
 menus : [Tree String]
