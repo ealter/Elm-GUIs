@@ -17,6 +17,7 @@ createElements spec =
         topLevel elem = color lightCharcoal
                      <| container (widthOf elem + 10) (heightOf elem) middle elem
 
+        --Needed because `maximum` errors on the empty list
         maxOrZero : [Int] -> Int
         maxOrZero list = case list of
             [] -> 0
@@ -30,12 +31,12 @@ createElements spec =
                 maxWidth : Signal Int
                 maxWidth = lift (\e -> maxOrZero <| map widthOf e) (combine elems)
 
-                make : Int -> Element -> Element
-                make w e = color lightCharcoal
-                        <| container (w + 10) (heightOf e) topLeft e
+                addContainer : Int -> Element -> Element
+                addContainer w e = color lightCharcoal
+                                <| container (w + 5) (heightOf e) topLeft e
 
                 makeTree : Tree (Signal Element) -> Tree (Signal Element)
-                makeTree t = Tree (lift2 make maxWidth <| treeData t)
+                makeTree t = Tree (lift2 addContainer maxWidth <| treeData t)
                                   (subLevels <| treeSubtree t)
             in map makeTree tree
         
@@ -108,7 +109,7 @@ renderSpec t =
 
 menuSpec : [Tree String]
 menuSpec = [Tree "Main" [leaf "About", leaf "Updates"],
-         Tree "File" [leaf "New", leaf "Open"]]
+            Tree "File" [leaf "New", leaf "Open"]]
 
 main = renderSpec <| map (treeMap constant) menuSpec
 
