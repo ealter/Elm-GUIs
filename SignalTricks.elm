@@ -7,5 +7,5 @@ hoverablesSig elem =
     in (lift (pool.hoverable id) elem, pool.events)
 
 delayFalse : Signal Bool -> Signal Bool
-delayFalse b = lift2 (||) b <| delay (0.05 * second) b
+delayFalse b = lift2 (||) b <| delay (0.001 * second) b
 
