@@ -81,24 +81,24 @@ achieve its goals.
 
 Elm compiles down to JavaScript to run in the browser. Executing Elm programs
 requires the compiled code as well as `elm-runtime.js` which is included with
-the compiler.
+the compiler. *Put this someplace else?*
 
 A typical functional program (e.g. in Haskell) is *transformative*: all input is
 available at the start of execution, and after a hopefully finite amount of time
 the program terminates with some output. Elm programs are *reactive*: not all
-input is available immediately, and the program may adjust output with each
-input indefnitely. Simple programs may be pure, with the output at a given time
-determined fully by the inputs at that time. However, Elm also has methods of
-remembering time-varying state in an impure way.
+input is available immediately, the program may adjust output with each
+input, and do so indefnitely. Simple programs may be pure, with the output at a
+given time determined fully by the inputs at that time. However, Elm also has
+methods of remembering time-varying state in an impure way.
 
 A time-varying value of a polymorphic `a` is represented by `Signal a`. For
 example, the term `constant 150` has type `Signal Int`. The combinator
 `constant` creates a signal whose value never changes. A more interesting signal
-is `Mouse.position : Signal (Int, Int)` (the `:` operator means "has type").
-This signal provides the mouse coordinate and updates whenever the mouse moves.
-Signals are asynchronous in that they update at no set time, just as the mouse
-may remain stationary for any amount of time. Signals update in discrete events,
-but are continuous in that they are always defined.
+is the primitive `Mouse.position : Signal (Int, Int)` (the `:` operator means
+"has type"). This signal represents the mouse coordinate and updates whenever
+the mouse moves. Signals are asynchronous in that they update at no set time,
+just as the mouse may remain stationary for any amount of time. Signals update
+in discrete events, but are continuous in that they are always defined.
 
 We can lift a pure function on to a signal:
 
@@ -112,7 +112,8 @@ pairs. The `area` signal we defined is the area of of the axis-aligned square
 whose diagonal is `(0,0)` (the top-left corner) and the current mouse position.
 Lifted functions are reevaluated whenever one of its input signals has an event,
 producing an event on the output signal, which may in turn be lifted into
-one or more functions. Events propogate until that is no longer the case.
+one or more functions. Events propagate until that is no longer the case, and
+the program waits for another event to occur.
 
 We can print the current area to the screen with `main = lift asText area`. The
 primitive `asText : a -> Element` renders almost anything into an Element,
@@ -120,7 +121,24 @@ which represents a DOM element. **Footnote** *Those following along in an Elm
 compiler, such as the one available at `elm-lang.org/try`, should add `import
 Mouse` to the top of the file.*
 
-State
+Signals can be time-dependent by using the `foldp` combinator. Familiar list
+folds apply a binary operation of an element and an accumulator to produce a new
+accumulator, over each list element in sequence. Folding from the *past*
+operates on and produces signals rather than lists:
+
+````
+foldr : (elem  -> accum -> accum) -> accum -> [elem]       -> accum
+foldp : (event -> accum -> accum) -> accum -> Signal event -> Signal accum
+````
+
+When the event signal updates, a pure function is called with the new event and
+the old accumulator (a default is supplied), producing a new accumulator that is
+the new value of the output signal. For example, `foldp max 0 Mouse.x` is a
+signal of the maximum *x*-value ever obtained by the mouse. With `foldp`, it is
+possible to create signals that depend on every event on a signal. However, most
+folded functions do not store every value explicitly (cons is an exception) and
+space can be saved by remembering only the accumulator.
+
 No signals of signals
 PLDI quote that's unclear
 
@@ -209,7 +227,7 @@ without hoverableJoin. However, in the general case menu structure is not known
 statically, and may even change as the program executes, for example when a
 different application becomes active. (Dynamic structure vs. dynamic strings?)
 
-others sections....?
+others sections....? Not needing to remember everything? Cite recent work?
 
 ###Conclusion: To the Elm Community
 "of service"
