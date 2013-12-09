@@ -43,10 +43,38 @@ delayFalse b = lift2 (||) b <| delay (0.05 * second) b
     5. tree(element) -> element
 -}
 
-{- TODO: can this be made pure?
-   TODO: create the containers -}
 createElements : Tree (Signal String) -> Tree (Signal Element)
-createElements = treeMap (lift plainText)
+createElements spec =
+    let topLevel : Element -> Element
+        topLevel elem = color lightCharcoal
+                     <| container (widthOf elem + 10) (heightOf elem) middle elem
+
+        maxOrZero : [Int] -> Int
+        maxOrZero list = case list of
+            [] -> 0
+            _ -> maximum list
+
+        subLevels : [Tree (Signal Element)] -> [Tree (Signal Element)]
+        subLevels tree =
+            let elems : [Signal Element]
+                elems = map treeData tree
+
+                maxWidth : Signal Int
+                maxWidth = lift (\e -> maxOrZero <| map widthOf e) (combine elems)
+
+                make : Int -> Element -> Element
+                make w e = color lightCharcoal
+                        <| container (w + 10) (heightOf e) topLeft e
+
+                makeTree : Tree (Signal Element) -> Tree (Signal Element)
+                makeTree t = Tree (lift2 make maxWidth <| treeData t)
+                                  (subLevels <| treeSubtree t)
+            in map makeTree tree
+        
+        allLevels : Tree (Signal Element) -> Tree (Signal Element)
+        allLevels t = Tree (lift topLevel <| treeData t)
+                           (subLevels <| treeSubtree t)
+    in allLevels <| treeMap (lift plainText) spec
 
 --Creates a signal with the element and its associated hover information
 extractHoverInfo : Tree (Signal Element) -> Signal (Tree (Element, Bool))
