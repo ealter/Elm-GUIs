@@ -29,7 +29,7 @@ either the problem we identify nor its solution, we cannot know for certain that
 either are novel. We continue in the hopes of presenting new and non-trivial
 techniques to the Elm community.
 
-GUIs, why we chose menus.
+GUIs, why we chose menus. Hover detection becomes key.
 
 There are two features of Elm we are deliberately avoiding. First is the
 extensive raster drawing library, Graphics.Collage. Dynamic hover detection is
@@ -40,13 +40,37 @@ contains wrappers around HTML checkboxes and dropdowns. While we refer to these
 to show the generality of our technique, we avoid them when constructing our
 menus.
 
-Contributions, sections ahead.
+We contribute:
+
+* The identification of an apparent limitation in Elm's hover detection library,
+ solved by a non-trivial usage pattern that does not require modifications to
+ the Elm compiler or runtime, and that generalizes to other functions in
+ Graphics.Input.
+* An implementation of desktop-style menu in Elm, which incorporates several
+ noteworthy "tricks". Eliot, expand here please.
+* An analysis of TodoFRP, the current state-of-the-art in dynamic Elm GUIs. We
+ demonstrate how it operates in the absence of our technique, and how it would
+ apply.
+
+Section 1 introduces Elm, signals, and the prohibition on signals of signals. It
+may be skipped by those already familiar with those topics. Section 2 presents a
+first attempt at a menu and details the issue we encountered. Section 3 presents
+Elm's hover detection for DOM elements and how it can be extended to meet our
+needs. Section 4 analyzes TodoFRP. Section 5 explains our menu implementation in
+detail. Section 6 concludes with a notice to the Elm community.
+
+This sentence needs a home:
 We have opted for clarity and thoroughness over brevity.
 
 ###Signals: Time-varying values
+Elm: compilation, runtime, implementation details
 State
 No signals of signals
 PLDI quote that's unclear
+join
+
+###A Naive Menu
+Briefly, what is the problem we run in to? Why is this whole paper non-trivial?
 
 ###A tour of Graphics.Input
 Hoverable, hoverables, and the forum post
@@ -90,9 +114,9 @@ TodoFRP is the current state-of-the-art in highly reactive Elm GUIs. It provides
 examples of different levels of reactivity, a familiar context for Elm veterans,
 and a few dirty tricks of its own.
 
-TodoFRP presents the user with a text field. Entered text becomes a DOM Element
-which can be deleted with a "x" button. The button is implemented using the
-Graphics.Input function  
+TodoFRP presents the user with a text field. Entered text becomes a DOM element
+which can be deleted with a "x" button, also a DOM element. The button is
+implemented using the Graphics.Input function  
 
 ```` customButtons : a -> { events : Signal a,  
                        customButton : a -> Element -> Element -> Element -> Element }````
@@ -104,13 +128,13 @@ Element, not a Signal Element, that nevertheless changes among those three in
 response to the mouse. This is possible because the result Element's dimensions
 are taken to be the maximum of the three inputs' dimensions. Even if the
 Elements have different sizes, the hover surface remains fixed in size (citation
-needed).
+needed, Eliot).
 
 In the case of TodoFRP, these Elements are diferent colors of the "x" and the
 same for each todo entry. The polymorphic `a`s are unique identifiers
 (ascending integers) for each entry.
 
-###Statically-known menus
+###Implementing Menus
 Or however you want to present the actual menus. Your section, Eliot.
 Three dirty tricks: spacers, ORing with parent, ORing with delay
 State in the DOM, not foldp or Automatons, "Elm's implentation of Arrowized FRP"
