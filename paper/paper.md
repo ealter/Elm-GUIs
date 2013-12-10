@@ -123,7 +123,7 @@ whose diagonal is `(0,0)` (the top-left corner) and the current mouse position.
 Lifted functions are reevaluated whenever one of its input signals has an event,
 producing an event on the output signal, which may in turn be lifted into
 one or more functions. Events propagate until that is no longer the case, and
-the program waits for another event to occur.
+the program waits for another event to occur. <!-- need better explanation -->
 
 We can print the current area to the screen with `main = lift asText area`. The
 primitive `asText : a -> Element` renders almost anything into an Element,
@@ -131,14 +131,14 @@ which represents a DOM element. **Footnote** *Those following along in an Elm
 compiler, such as the one available at `elm-lang.org/try`, should add `import
 Mouse` to the top of the file.*
 
-Signals can be time-dependent by using the `foldp` combinator. Familiar list
+Signals can remember state by using the `foldp` combinator. Familiar list
 folds apply a binary operation of an element and an accumulator to produce a new
 accumulator, over each list element in sequence. Folding from the *past*
 operates on and produces signals rather than lists:
 
 ````
-foldr : (elem  -> accum -> accum) -> accum -> [elem]       -> accum
-foldp : (event -> accum -> accum) -> accum -> Signal event -> Signal accum
+foldr : (a -> b -> b) -> b -> [a]      -> b
+foldp : (a -> b -> b) -> b -> Signal a -> Signal b
 ````
 
 When the event signal updates, a pure function is called with the new event and
@@ -149,17 +149,19 @@ possible to create signals that depend on every event on a signal. However, most
 folded functions do not store every value explicitly (cons is an exception) and
 space can be saved by remembering only the accumulator.
 
+<!-- Show and explain the type system here -->
 No signals of signals
 PLDI quote that's unclear
 
-To a Haskeller, this means signals are functors (and in fact applicative
+To a reader familiar with Haskell, this means signals are functors (and in fact applicative
 functors) but not monads, as monads support the following operation:
-join
+``join``.
 Such an operation for signals would condence a `Signal (Signal a)` into a mere
 `Signal a`, but it cannot exist in general. 
 
 ###A Naïve Menu
-Briefly, what is the problem we run in to? Why is this whole paper non-trivial?
+*Briefly, what is the problem we run in to? Why is this whole paper
+non-trivial?*
 
 Now that we've established basic knowledge of Elm, we can rephrase the
 description of menus in terms of signals, and illustrate the a naïve approach
@@ -172,9 +174,6 @@ The similar type signatures
 ````hoverable : Element -> (Element, Signal Bool)````
 
 ````lift hoverable : Signal Element -> Signal (Element, Signal Bool)````
-
-````lift hoverable (handwave) : Signal Element -> (Signal Element, Signal Signal
-Bool)````
 
 The result is a signal of signals, which are problematic for reasons previously
 stated. There does not exist a general join function to operate on the Signal
@@ -198,6 +197,7 @@ Element. Then the original Element is put back, but is now being hovered on!
 This condition manifests itself as flickering between the two Elements. It is
 unavoidable in any language or system that allows hover targets to change size
 in response to hover events.
+<!-- Maybe put the code for this example in the appendix? -->
 
 ###Interlude: Analyzing TodoFRP
 
@@ -217,11 +217,11 @@ implemented using the Graphics.Input function
 Notice the similarity with `hoverables`. Each call of `customButton` provides
 the identifier event when the button is clicked, and three (pure) Elements to
 display: one normally, one on hover, and one on click. The result is an
-Element, not a Signal Element, that nevertheless changes among those three in
+``Element``, not a ``Signal Element``, that nevertheless changes among those three in
 response to the mouse. This is possible because the result Element's dimensions
 are taken to be the maximum of the three inputs' dimensions. Even if the
-Elements have different sizes, the hover surface remains fixed in size (citation
-needed, Eliot).
+Elements have different sizes, the resulting element and therefore the
+hover surface remains fixed in size.
 
 In the case of TodoFRP, these Elements are diferent colors of the "x" and the
 same for each todo entry. The polymorphic `a`s are unique identifiers
