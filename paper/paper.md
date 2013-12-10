@@ -15,7 +15,7 @@ technique to address the issue without modifying the Elm compiler. It
 generalizes to other functions in Elm's Graphics.Input library, which includes
 (besides hover detection) GUI mainstays such as buttons, checkboxes, and text
 fields. We also contribute techniques for the representation and display of
-menus in Elm, and demonstrate our work with an existing Elm web application.
+menus in Elm, and contrast our work with an existing Elm web application.
 
 ###Introduction
 Elm was introduced in March 2012 in Evan Czaplicki's senior thesis, "Concurrent
@@ -61,7 +61,7 @@ We contribute:
  the Elm compiler or runtime, and that generalizes to other functions in
  Graphics.Input.
 * An implementation of desktop-style menu in Elm, which incorporates several
- noteworthy "tricks". <!-- Should we describe them here, or later? -->
+ noteworthy "tricks" as well as general style practices.
 * An analysis of TodoFRP, the current state-of-the-art in dynamic Elm GUIs. We
  demonstrate how it operates in the absence of our technique, and how it could
  operate in its presence.
@@ -82,18 +82,18 @@ achieve its goals.
 
 ###Signals: Time-varying values
 
+*This paragraph needs a better home or to be cut.*
 Elm compiles down to JavaScript to run in the browser. Executing Elm programs
 requires the compiled code as well as `elm-runtime.js` which is included with
 the compiler.
-<!-- Put this in the introduction? Don't talk about `elm-runtime.js`?  -->
 
 A typical functional program (e.g. in Haskell) is *transformative*: all input is
 available at the start of execution, and after a hopefully finite amount of time
 the program terminates with some output. In contrast, Elm programs are
 *reactive*: not all input is available immediately and the program may
-indefinitely adjust output with each input. Simple programs may be pure, with
-the output remaining constant. However, Elm also has methods of remembering
-time-varying state in an impure way.
+indefinitely adjust output with each input. In simple programs, the inputs at a
+given time fully determine the output. More complex programs will take advantage
+of Elm's ability to remember state.
 
 A time-varying value of a polymorphic `a` is represented by `Signal a`. For
 example, the term `constant 150` has type `Signal Int`. The combinator
@@ -112,7 +112,7 @@ meaning.)
 lift : (a -> b) -> Signal a -> Signal b
 ````
 
-For example, we can multiply the `x` and `y` coordinates of the mouse position.
+For example, we can multiply the *x* and *y* coordinates of the mouse position.
 
 ````
 area : Signal Int
@@ -124,7 +124,7 @@ pairs. The `area` signal we defined is the area of of the axis-aligned square
 whose diagonal is `(0,0)` (the top-left corner) and the current mouse position.
 
 Lifted functions are reevaluated whenever one of its input signals has an event,
-producing an event on the output signal, which may in turn be lifted into
+producing an event on the output signal. This in turn may be lifted into
 one or more functions. Events propagate until that is no longer the case, and
 the program waits for another event to occur. <!-- need better explanation -->
 
@@ -132,7 +132,7 @@ We can print the current area to the screen with `main = lift asText area`. The
 primitive `asText : a -> Element` renders almost anything into an Element,
 which represents a DOM element. **Footnote** *Those following along in an Elm
 compiler, such as the one available at `elm-lang.org/try`, should add `import
-Mouse` to the top of the file.*
+Mouse` to the top of the file. Alternatively try the `elm-repl` on Hackage.*
 
 Signals can remember state by using the `foldp` combinator. Familiar list
 folds apply a binary operation of an element and an accumulator to produce a new
@@ -156,9 +156,13 @@ space can be saved by remembering only the accumulator.
 No signals of signals
 PLDI quote that's unclear
 
-To a reader familiar with Haskell, this means signals are functors (and in fact applicative
-functors) but not monads, as monads support the following operation:
-``join``.
+To a reader familiar with Haskell, this means signals are functors (and in fact
+applicative functors) but not monads, as monads support the following operation:
+
+````
+join :: Monad m => m (m a) -> m a
+````
+
 Such an operation for signals would condence a `Signal (Signal a)` into a mere
 `Signal a`, but it cannot exist in general.
 
@@ -176,9 +180,16 @@ encounters signals of signals.
 Hoverable, hoverables, and the forum post
 The similar type signatures
 
+Hover information for Elements is provided by the function
+
 ````hoverable : Element -> (Element, Signal Bool)````
 
+which works well when the Element is pure (not a signal). 
+
+
 ````lift hoverable : Signal Element -> Signal (Element, Signal Bool)````
+
+````lift hoverable : Signal Element -> (Signal Element, Signal Signal Bool)````
 
 The result is a signal of signals, which are problematic for reasons previously
 stated. There does not exist a general join function to operate on the Signal
@@ -255,7 +266,7 @@ function
 Notice the similarity with `hoverables`. Each call of `customButton` provides
 the identifier event when the button is clicked, and three (pure) Elements to
 display: one normally, one on hover, and one on click. The result is an
-``Element``, not a ``Signal Element``, that nevertheless changes among those three in
+`Element`, not a `Signal Element`, that nevertheless changes among those three in
 response to the mouse. This is possible because the result Element's dimensions
 are taken to be the maximum of the three inputs' dimensions. Even if the
 Elements have different sizes, the resulting element and therefore the
