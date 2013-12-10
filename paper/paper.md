@@ -195,15 +195,23 @@ hoverables : a -> { events : Signal a,
                     hoverable : (Bool -> a) -> Element -> Element }
 ````
 
-The polymorphic `a` can serve as an identifier, 
+The polymorphic `a` type can serve as an identifier. The first value supplies
+the default value of `events` (signals must always be defined and so a default
+value is required). The returned record includes the `events` signals and the
+`hoverable` function, *which is pure* and can therefore be lifted without
+creating signals of signals:
 
-*Next sentence assumes we didn't get it working:* Surprisingly, hoverableJoin
-can be implemented without modifying the Elm compiler, and in a way that is
-sensible and type-correct -- but that does not work as desired.
+````
+hoverablesJoin : Signal Element -> (Signal Element, Signal Bool)
+hoverablesJoin elem =
+    let pool = hoverables False
+    in (lift (pool.hoverable id) elem, pool.events)
+````
 
-hoverables
-The Trick.
-polymorphic ability that we don't use
+Here, we ignore the polymorphism and instead create a Boolean signal that is
+originally False and use the identity function to not alter the hoverable
+information. Notice that `pool.hoverable` is partially applied to `id` purely,
+and then lifted on to the argument.
 
 With this power, it becomes easy to create an infinite loop. Suppose an Element
 shrinks on hover. Suppose the cursor hovers on the Element, which is then
@@ -257,6 +265,7 @@ If the menu structure is known statically, then it is possible to create menus
 without hoverableJoin. However, in the general case menu structure is not known
 statically, and may even change as the program executes, for example when a
 different application becomes active. (Dynamic structure vs. dynamic strings?)
+Why you can't use the polymorphic a
 
 others sections....? Not needing to remember everything? Cite recent work?
 
