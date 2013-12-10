@@ -1,5 +1,6 @@
 module Tree (Tree, leaf, treeMap, treeZipWith, treeGetPaths, treeData,
-             treeSubtree, treeAtPath, extractTreeSignal) where
+             treeSubtree, treeAtPath, extractTreeSignal, flattenTree,
+             collapseTreeSignals) where
 import open MaybeHelpers
 
 data Tree a = Tree a [Tree a]
@@ -57,4 +58,10 @@ extractTreeSignal : Tree (Signal a) -> Signal (Tree a)
 extractTreeSignal (Tree sa ts) =
     let recursed = combine <| map extractTreeSignal ts
     in lift2 Tree sa recursed
+
+collapseTreeSignals : Tree (Signal a) -> Signal a
+collapseTreeSignals = merges . flattenTree
+
+flattenTree : Tree a -> [a]
+flattenTree (Tree x xs) = x :: (concat <| map flattenTree xs)
 
