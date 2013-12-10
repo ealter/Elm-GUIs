@@ -160,7 +160,7 @@ To a reader familiar with Haskell, this means signals are functors (and in fact 
 functors) but not monads, as monads support the following operation:
 ``join``.
 Such an operation for signals would condence a `Signal (Signal a)` into a mere
-`Signal a`, but it cannot exist in general. 
+`Signal a`, but it cannot exist in general.
 
 <!-- Talk about foldp remembering everything if we had signals of signals -->
 
@@ -187,8 +187,8 @@ using less general techniques:
 
 ````hoverableJoin: Signal Element -> (Signal Element, Signal Bool)````
 
-It is done using the more general `hoverables` (note the plural) primitive. Used
-to implement `hoverable`, it has the following type:
+It is done using the more general `hoverables` (note the plural) primitive, of
+the following type:
 
 ````
 hoverables : a -> { events : Signal a,
@@ -198,20 +198,34 @@ hoverables : a -> { events : Signal a,
 The polymorphic `a` type can serve as an identifier. The first value supplies
 the default value of `events` (signals must always be defined and so a default
 value is required). The returned record includes the `events` signals and the
-`hoverable` function, *which is pure* and can therefore be lifted without
-creating signals of signals:
+`hoverable` function, which in general may be applied multiple times so that
+multiple elements report on `events`. Additionally, `hoverables` is used to
+implement `hoverable`:
+
+````
+hoverable : Element -> (Element, Signal Bool)
+hoverable elem =
+    let pool = hoverables False
+        in  (pool.hoverable id elem, pool.events)
+````
+
+It ignores the polymorphism and instead create a Boolean signal that is
+originally False and use the identity function to not alter the hoverable
+information. With a simple change, we can create a function that acts on `Signal
+Element` instead of `Element`:
 
 ````
 hoverablesJoin : Signal Element -> (Signal Element, Signal Bool)
 hoverablesJoin elem =
     let pool = hoverables False
-    in (lift (pool.hoverable id) elem, pool.events)
+    in (lif* (pool.hoverable id) elem, pool.events)
 ````
 
-Here, we ignore the polymorphism and instead create a Boolean signal that is
-originally False and use the identity function to not alter the hoverable
-information. Notice that `pool.hoverable` is partially applied to `id` purely,
-and then lifted on to the argument.
+Notice that `pool.hoverable` is partially applied to `id` purely,
+and then lifted on to the argument. This is possible, utlimately, because
+`pool.hoverable` is pure.
+
+*Evan: docs and forum post.*
 
 With this power, it becomes easy to create an infinite loop. Suppose an Element
 shrinks on hover. Suppose the cursor hovers on the Element, which is then
