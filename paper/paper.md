@@ -28,13 +28,14 @@ of which there are several.
 
 We chose menus as an example GUI to implement in Elm. The particular design
 places the top-level menu at the top of the screen, similar to Mac OS X and many
-Linux distributions, with selections coming down from the top. Menus extend when the
-top-level item is hovered upon, and remain extended while the mouse hovers over
-any item in the menu. Therefore it is necessary to know hover information about
-each menu item. This time-varying information is also used to detect selections
-upon click and highlight the moused-over item. It is simple to do this when the
-hover-detecting area is constant. Our paper describes the much more difficult
-task of managing time-varying hover information about time-varying areas.
+Linux distributions, with selections coming down from the top. Menus extend when
+the top-level item is hovered upon, and remain extended while the mouse hovers
+over any item in the menu. Therefore it is necessary to know hover information
+about each menu item. This time-varying information is also used to detect
+selections upon click and highlight the moused-over item. It is simple to do
+this when the hover-detecting area is constant. Our paper describes the much
+more difficult task of managing time-varying hover information about
+time-varying areas.
 
 There are two features of Elm we are deliberately avoiding. First is the
 extensive raster drawing library, Graphics.Collage. Dynamic hover detection is
@@ -42,8 +43,8 @@ not problematic when using this library because it can be done purely through
 manual collision detection. However, if we used this library, our GUI would be a
 single raster animation and not a DOM tree. Secondly, the Graphics.Input library
 contains wrappers around HTML checkboxes and dropdowns. While we refer to these
-to show how the technique we develop for hovering generalizes, we avoid them when
-constructing our menus.
+to show how the technique we develop for hovering generalizes, we avoid them
+when constructing our menus.
 
 It is difficult for the authors to assess what level of knowledge should be
 assumed on the part of the reader. Firstly, readers will range from Elm's
@@ -261,7 +262,7 @@ button, also a DOM element. The button is implemented using the Graphics.Input
 function  
 
 ```` customButtons : a -> { events : Signal a,  
-                       customButton : a -> Element -> Element -> Element -> Element }````
+                      customButton : a -> Element -> Element -> Element -> Element }````
 
 Notice the similarity with `hoverables`. Each call of `customButton` provides
 the identifier event when the button is clicked, and three (pure) Elements to
