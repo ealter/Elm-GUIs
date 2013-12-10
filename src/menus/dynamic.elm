@@ -7,8 +7,9 @@ import Char
 mousePosition : Signal String
 mousePosition = lift show <| sampleOn Mouse.clicks Mouse.position
 
-keystrokes = lift (show . (map Char.fromCode))
-          <| foldp (::) [] Keyboard.lastPressed
+keystrokes = foldp (::) [] Keyboard.lastPressed
+             |> lift reverse
+             |> lift (show . (map Char.fromCode))
 
 menuSpec : [Tree (Signal String)]
 menuSpec = [Tree (constant "Main") [leaf (constant "About"), leaf mousePosition],
