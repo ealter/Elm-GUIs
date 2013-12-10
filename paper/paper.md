@@ -283,14 +283,22 @@ Element` instead of `Element`:
 hoverablesJoin : Signal Element -> (Signal Element, Signal Bool)
 hoverablesJoin elem =
     let pool = hoverables False
-    in (lif* (pool.hoverable id) elem, pool.events)
+    in (lift (pool.hoverable id) elem, pool.events)
 ````
 
 Notice that `pool.hoverable` is partially applied to `id` purely,
 and then lifted on to the argument. This is possible, utlimately, because
 `pool.hoverable` is pure.
 
-*Evan: docs and forum post.*
+Just how novel is this small, but hugely significant change? The documentation
+for `hoverables` states that it allows users to "create and destroy elements
+dynamically and still detect hover information," but gives no further indicators
+on how to do so. Though the Elm website is full of examples, there are none for
+either `hoverable` or `hoverables`. Moreover, in the [mailing list
+post](https://groups.google.com/d/msg/elm-discuss/QgowLy5jdhA/CZQfjkbjMsEJ) that
+introduced these functions, Czaplicki said that "`hoverables` is very low level,
+but the idea is that you can build any kind of nicer abstraction on top of it."
+We have done just that.
 
 With this power, it becomes easy to create an infinite loop. Suppose an Element
 shrinks on hover. Suppose the cursor hovers on the Element, which is then
