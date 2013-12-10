@@ -10,5 +10,5 @@ menuSpec = [Tree "Main" [leaf "About",
                                                    leaf "baz"],
                                     leaf "Open"]]]
 
-main = fst <| renderMenu <| map (treeMap constant) menuSpec
+main = renderMenu <| map (treeMap constant) menuSpec
 

@@ -53,17 +53,6 @@ extractHoverInfo elements =
         elementsHover = treeMap (makeNode . hoverablesJoin) elements
     in extractTreeSignal elementsHover
 
-extractClickInfo : Tree (Signal Element) -> (Tree (Signal Element), Signal [Int])
-extractClickInfo elems =
-    let elementsClick : Tree (Signal Element, Signal ())
-        elementsClick = treeMap clicksJoin elems
-
-        paths : Tree (Signal [Int])
-        paths = treeZipWith sampleOn
-                            (treeMap snd elementsClick)
-                            (treeMap constant <| treeGetPaths elementsClick)
-    in (treeMap fst elementsClick, collapseTreeSignals paths)
-
 {- Takes in the element and the hover information. Returns whether or not its
    children should be displayed on the screen.
 
@@ -119,16 +108,12 @@ renderTree menu =
                          ]
     in renderTopMenu
 
-renderMenu : [Tree (Signal String)] -> (Signal Element, Signal [Int])
+renderMenu : [Tree (Signal String)] -> Signal Element
 renderMenu t =
-    let (clickElements, clickPath) =
-            let oneTree : Tree (Signal Element)
-                oneTree = Tree (constant <| spacer 1 1)
-                               (map createElements t)
-                (tree, clickPath) = extractClickInfo oneTree
-            in (treeSubtree tree, clickPath)
+    let elements : [Signal (Tree (Element, Bool))]
+        elements = map (extractHoverInfo . createElements) t
 
-        hoverElements : [Signal (Tree (Element, Bool))]
-        hoverElements = map extractHoverInfo clickElements
-    in (renderTree <~ combine hoverElements, clickPath)
+        rendered : [Tree (Element, Bool)] -> Element
+        rendered tree = renderTree tree
+    in rendered <~ combine elements
 

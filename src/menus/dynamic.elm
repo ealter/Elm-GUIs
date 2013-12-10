@@ -16,5 +16,5 @@ menuSpec = [Tree (constant "Main") [leaf (constant "About"), leaf mousePosition]
             Tree mousePosition [leaf (constant "File"), leaf keystrokes],
             Tree keystrokes [leaf (constant "New"), leaf mousePosition]]
 
-main = fst <| renderMenu menuSpec
+main = renderMenu menuSpec
 

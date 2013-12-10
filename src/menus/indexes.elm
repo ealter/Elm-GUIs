@@ -20,9 +20,8 @@ stringsAgain tree = treeMap (show . onlyJust . treeAtPath tree) (treeGetPaths tr
 indexes : [Tree String]
 indexes = map (\s -> treeMap show <| treeGetPaths s) menuSpec
 
---main = fst <| renderMenu <| map (treeMap constant) indexes
-(elements, clicks) = renderMenu <| map (treeMap constant . stringsAgain) menuSpec
+--main = renderMenu <| map (treeMap constant) indexes
+main = renderMenu <| map (treeMap constant . stringsAgain) menuSpec
 
-main = lift (flow right) <| combine [elements, lift asText clicks]
-
+--main = onlyJust <| treeGetPaths menuSpec
 
