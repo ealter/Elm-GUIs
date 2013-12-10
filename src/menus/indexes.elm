@@ -23,3 +23,5 @@ indexes = map (\s -> treeMap show <| treeGetPaths s) menuSpec
 --main = renderMenu <| map (treeMap constant) indexes
 main = renderMenu <| map (treeMap constant . stringsAgain) menuSpec
 
+--main = onlyJust <| treeGetPaths menuSpec
+

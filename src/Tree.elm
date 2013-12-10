@@ -37,17 +37,14 @@ nth i list = maybeHead <| drop i list
 
 recurseAtPath : [Int] -> Tree a -> Maybe [a]
 recurseAtPath restOfPath node = maybeCons (treeData node)
-                                    (treeAtPath node restOfPath)
-
-revPath : Tree a -> [Int] -> Maybe [a]
-revPath tree path =
-    case path of
-      []        -> Just [treeData tree]
-      (x :: xs) -> maybeBind (recurseAtPath xs)
-                             (nth x (treeSubtree tree))
+                                          (treeAtPath node restOfPath)
 
 treeAtPath : Tree a -> [Int] -> Maybe [a]
-treeAtPath tree path = maybeMap reverse (revPath tree path)
+treeAtPath tree path =
+    case path of
+      []        -> Just []
+      (x :: xs) -> maybeBind (recurseAtPath xs)
+                             (nth x (treeSubtree tree))
 
 treeData : Tree a -> a
 treeData (Tree d _) = d
