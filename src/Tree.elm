@@ -22,17 +22,14 @@ treeGetPaths tree =
                 []      -> []
                 x :: xs -> (x, i) :: mapIndexes (i + 1) xs
 
-        applyTuple : (a -> b -> c) -> (a, b) -> c
-        applyTuple f (a, b) = f a b
-
         treeGetPaths' : Tree a -> [Int] -> Tree ([Int])
-        treeGetPaths' (Tree x xs) prefix = 
+        treeGetPaths' (Tree x xs) prefix =
             let addPrefix : (a, Int) -> (a, [Int])
                 addPrefix (a, i) = (a, i :: prefix)
 
                 --TODO: add type annotation. Elm refuses the correct annotation?
                 paths = map addPrefix <| mapIndexes 0 xs
-            in Tree prefix <| map (applyTuple treeGetPaths') paths
+            in Tree prefix <| map (\(a,b) -> treeGetPaths' a b) paths
     in treeMap reverse <| treeGetPaths' tree []
 
 nth : Int -> [a] -> Maybe a

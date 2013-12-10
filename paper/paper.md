@@ -28,13 +28,14 @@ of which there are several.
 
 We chose menus as an example GUI to implement in Elm. The particular design
 places the top-level menu at the top of the screen, similar to Mac OS X and many
-Linux distributions, with selections coming down from the top. Menus extend when the
-top-level item is hovered upon, and remain extended while the mouse hovers over
-any item in the menu. Therefore it is necessary to know hover information about
-each menu item. This time-varying information is also used to detect selections
-upon click and highlight the moused-over item. It is simple to do this when the
-hover-detecting area is constant. Our paper describes the much more difficult
-task of managing time-varying hover information about time-varying areas.
+Linux distributions, with selections coming down from the top. Menus extend when
+the top-level item is hovered upon, and remain extended while the mouse hovers
+over any item in the menu. Therefore it is necessary to know hover information
+about each menu item. This time-varying information is also used to detect
+selections upon click and highlight the moused-over item. It is simple to do
+this when the hover-detecting area is constant. Our paper describes the much
+more difficult task of managing time-varying hover information about
+time-varying areas.
 
 There are two features of Elm we are deliberately avoiding. First is the
 extensive raster drawing library, Graphics.Collage. Dynamic hover detection is
@@ -42,8 +43,8 @@ not problematic when using this library because it can be done purely through
 manual collision detection. However, if we used this library, our GUI would be a
 single raster animation and not a DOM tree. Secondly, the Graphics.Input library
 contains wrappers around HTML checkboxes and dropdowns. While we refer to these
-to show how the technique we develop for hovering generalizes, we avoid them when
-constructing our menus.
+to show how the technique we develop for hovering generalizes, we avoid them
+when constructing our menus.
 
 It is difficult for the authors to assess what level of knowledge should be
 assumed on the part of the reader. Firstly, readers will range from Elm's
@@ -98,11 +99,11 @@ of Elm's ability to remember state.
 A time-varying value of a polymorphic `a` is represented by `Signal a`. For
 example, the term `constant 150` has type `Signal Int`. The combinator
 `constant` creates a signal whose value never changes. A more interesting signal
-is the primitive `Mouse.position : Signal (Int, Int)`. This signal represents
-the mouse coordinate and updates whenever the mouse moves. Signals are
-asynchronous in that they update at no set time, just as the mouse may remain
-stationary for any amount of time. Signals update in discrete events, but are
-continuous in the sense that they are always defined.
+is the primitive `Window.dimensions : Signal (Int, Int)`. This signal represents
+the browser window size and updates whenever it is resized. Signals are
+asynchronous in that they update at no set time, just as the window may remain
+the same size idefinitely. Signals update in discrete events, but are continuous
+in the sense that they are always defined.
 
 The function `lift` allows us to execute a pure function onto a signal.
 (Although lifting is a general functional concept, in Elm it has only this
@@ -112,16 +113,17 @@ meaning.)
 lift : (a -> b) -> Signal a -> Signal b
 ````
 
-For example, we can multiply the *x* and *y* coordinates of the mouse position.
+For example, we can multiply the width and height of the window together to find
+its area.
 
 ````
 area : Signal Int
-area = lift (uncurry (*)) Mouse.position
+area = lift (uncurry (*)) Window.dimensions
 ````
 
 In this case, the lifted function is multiplication, uncurried as to operate on
-pairs. The `area` signal we defined is the area of of the axis-aligned square
-whose diagonal is `(0,0)` (the top-left corner) and the current mouse position.
+pairs. As the Window library exposes width and height as both a pair and
+individually, we can also write `area = lift2 (*) Window.width Window.height`.
 
 Lifted functions are reevaluated whenever one of its input signals has an event,
 producing an event on the output signal. This in turn may be lifted into
@@ -132,7 +134,7 @@ We can print the current area to the screen with `main = lift asText area`. The
 primitive `asText : a -> Element` renders almost anything into an Element,
 which represents a DOM element. **Footnote** *Those following along in an Elm
 compiler, such as the one available at `elm-lang.org/try`, should add `import
-Mouse` to the top of the file. Alternatively try the `elm-repl` on Hackage.*
+Window` to the top of the file.*
 
 Signals can remember state by using the `foldp` combinator. Familiar list
 folds apply a binary operation of an element and an accumulator to produce a new
@@ -146,15 +148,69 @@ foldp : (a -> b -> b) -> b -> Signal a -> Signal b
 
 When the event signal updates, a pure function is called with the new event and
 the old accumulator (a default is supplied), producing a new accumulator that is
-the new value of the output signal. For example, `foldp max 0 Mouse.x` is a
-signal of the maximum *x*-value ever obtained by the mouse. With `foldp`, it is
-possible to create signals that depend on every event on a signal. However, most
-folded functions do not store every value explicitly (cons is an exception) and
-space can be saved by remembering only the accumulator.
+the new value of the output signal. For example, `foldp max 0 Window.width` is a
+signal of the maximum width ever obtained by the window. With `foldp`, it is
+possible to create signals that depend on every event to ever occur on a signal.
+However, most folded functions do not store every value explicitly (cons is an
+exception) and space can be saved by remembering only the accumulator.
 
-<!-- Show and explain the type system here -->
-No signals of signals
-PLDI quote that's unclear
+#### No Signals of Signals
+
+The ability to create a signal dependent on past state has a potentially
+disastrous implication for space performance. Czaplicki and Chong explain the
+preventive measure and the problem:
+
+> The type system rules out programs that use signals of signals, for the
+following reason. Intuitively, if we have signals of signals, then after a
+program has executed for, say 10 minutes, we might create a signal that (through
+the use of `foldp`) depends on the history of an input signal, say
+`Window.width`.
+
+That is, we can define a clock that measures the amount of time since program
+execution began:
+
+````
+clock : Signal Time
+clock = foldp (+) 0 (fps 10)
+````
+
+The `fps n` combinator produces a signal of the time elapsed since its last
+event, updated `n` times a second. We sum these deltas starting with zero. Then
+we create a function from a time to one of two signals, one of which is trivial
+and one of which depends on `Window.width`:
+
+````
+switcher : Time -> Signal Int
+switcher t = if t < 10*minute
+             then constant 0
+             else foldp max 0 Window.width
+````
+
+We could, were the type system not principled on disallowing it, create
+
+````
+switched : Signal (Signal Int)
+switched = lift switched clock
+````
+
+Why is this problematic? Czaplicki and Chong continue,
+
+> To compute the current value of this signal, should we use the
+entire history of `Window.width`? But that would require saving all history of
+`Window.width` from the beginning of execution, even though we do not know
+whether the history will be needed later. Alternatively, we could compute the
+current value of the signal just using the current and new values of
+`Window.width` (i.e., ignoring the history). But this would allow the
+possibility of having two identically defined signals that have different
+values, based on when they were created. We avoid these issues by ruling out
+signals of signals.
+
+<!--This paragraph feels duplicative-->
+That is, in order to have both state and signals of signals, the program must
+either remember indefinitely every event to ever occur, so that a newly created
+signal can use them, or tolerate signals that vary based only on when they were
+created, losing referential transparency. Elm's creators declined either option
+and disallowed signals of signals.
 
 To a reader familiar with Haskell, this means signals are functors (and in fact
 applicative functors) but not monads, as monads support the following operation:
@@ -163,10 +219,8 @@ applicative functors) but not monads, as monads support the following operation:
 join :: Monad m => m (m a) -> m a
 ````
 
-Such an operation for signals would condence a `Signal (Signal a)` into a mere
+Such an operation for signals would condense a `Signal (Signal a)` into a mere
 `Signal a`, but it cannot exist in general.
-
-<!-- Talk about foldp remembering everything if we had signals of signals -->
 
 ###A Naïve Menu
 *Briefly, what is the problem we run in to? Why is this whole paper
@@ -229,14 +283,22 @@ Element` instead of `Element`:
 hoverablesJoin : Signal Element -> (Signal Element, Signal Bool)
 hoverablesJoin elem =
     let pool = hoverables False
-    in (lif* (pool.hoverable id) elem, pool.events)
+    in (lift (pool.hoverable id) elem, pool.events)
 ````
 
 Notice that `pool.hoverable` is partially applied to `id` purely,
 and then lifted on to the argument. This is possible, utlimately, because
 `pool.hoverable` is pure.
 
-*Evan: docs and forum post.*
+Just how novel is this small, but hugely significant change? The documentation
+for `hoverables` states that it allows users to "create and destroy elements
+dynamically and still detect hover information," but gives no further indicators
+on how to do so. Though the Elm website is full of examples, there are none for
+either `hoverable` or `hoverables`. Moreover, in the [mailing list
+post](https://groups.google.com/d/msg/elm-discuss/QgowLy5jdhA/CZQfjkbjMsEJ) that
+introduced these functions, Czaplicki said that "`hoverables` is very low level,
+but the idea is that you can build any kind of nicer abstraction on top of it."
+We have done just that.
 
 With this power, it becomes easy to create an infinite loop. Suppose an Element
 shrinks on hover. Suppose the cursor hovers on the Element, which is then
@@ -261,7 +323,7 @@ button, also a DOM element. The button is implemented using the Graphics.Input
 function  
 
 ```` customButtons : a -> { events : Signal a,  
-                       customButton : a -> Element -> Element -> Element -> Element }````
+                      customButton : a -> Element -> Element -> Element -> Element }````
 
 Notice the similarity with `hoverables`. Each call of `customButton` provides
 the identifier event when the button is clicked, and three (pure) Elements to
