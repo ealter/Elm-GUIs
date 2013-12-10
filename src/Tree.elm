@@ -1,4 +1,6 @@
-module Tree where
+module Tree (Tree, leaf, treeMap, treeZipWith, treeGetPaths, treeData,
+             treeSubtree, treeAtPath, extractTreeSignal) where
+import open MaybeHelpers
 
 data Tree a = Tree a [Tree a]
 
@@ -33,20 +35,22 @@ treeGetPaths tree =
             in Tree prefix <| map (applyTuple treeGetPaths') paths
     in treeMap reverse <| treeGetPaths' tree []
 
-treeAtPath : Tree a -> [Int] -> Maybe a
-treeAtPath tree path =
-    let maybeHead : [a] -> Maybe a
-        maybeHead xs = case xs of
-                            []     -> Nothing
-                            x :: _ -> Just x
+nth : Int -> [a] -> Maybe a
+nth i list = maybeHead <| drop i list
 
-        nth : Int -> [a] -> Maybe a
-        nth i list = maybeHead <| drop i list
-    in case path of
-        []        -> Just (treeData tree)
-        (x :: xs) -> (case nth x (treeSubtree tree) of
-                           Nothing   -> Nothing
-                           Just node -> treeAtPath node xs)
+recurseAtPath : [Int] -> Tree a -> Maybe [a]
+recurseAtPath restOfPath node = maybeCons (treeData node)
+                                    (treeAtPath node restOfPath)
+
+revPath : Tree a -> [Int] -> Maybe [a]
+revPath tree path =
+    case path of
+      []        -> Just [treeData tree]
+      (x :: xs) -> maybeBind (recurseAtPath xs)
+                             (nth x (treeSubtree tree))
+
+treeAtPath : Tree a -> [Int] -> Maybe [a]
+treeAtPath tree path = maybeMap reverse (revPath tree path)
 
 treeData : Tree a -> a
 treeData (Tree d _) = d

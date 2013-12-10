@@ -15,7 +15,7 @@ onlyJust a = case a of
                   Just b -> b
 
 stringsAgain : Tree String -> Tree String
-stringsAgain tree = treeMap (onlyJust . treeAtPath tree) (treeGetPaths tree)
+stringsAgain tree = treeMap (show . onlyJust . treeAtPath tree) (treeGetPaths tree)
 
 indexes : [Tree String]
 indexes = map (\s -> treeMap show <| treeGetPaths s) menuSpec
