@@ -159,6 +159,8 @@ functors) but not monads, as monads support the following operation:
 Such an operation for signals would condence a `Signal (Signal a)` into a mere
 `Signal a`, but it cannot exist in general. 
 
+<!-- Talk about foldp remembering everything if we had signals of signals -->
+
 ###A Naïve Menu
 *Briefly, what is the problem we run in to? Why is this whole paper
 non-trivial?*
