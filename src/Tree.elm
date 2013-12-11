@@ -1,7 +1,8 @@
 module Tree (Tree, leaf, treeMap, treeZipWith, treeGetPaths, treeData,
              treeSubtree, treeAtPath, extractTreeSignal, flattenTree,
-             collapseTreeSignals) where
+             collapseTreeSignals, showTree) where
 import open MaybeHelpers
+import String
 
 data Tree a = Tree a [Tree a]
 
@@ -64,4 +65,11 @@ collapseTreeSignals = merges . flattenTree
 
 flattenTree : Tree a -> [a]
 flattenTree (Tree x xs) = x :: (concat <| map flattenTree xs)
+
+{- A general debugging function -}
+showTree : Tree a -> String
+showTree (Tree x xs) =
+    case xs of
+        [] -> show x
+        _  -> String.concat ["[", show x, show <| map showTree xs, "]"]
 
