@@ -47,11 +47,18 @@ createElements spec =
     in allLevels <| treeMap (lift plainText) spec
 
 --Creates a signal with the element and its associated hover information
-extractHoverInfo : Tree (Signal Element) -> Signal (Tree (Element, Bool))
-extractHoverInfo elements =
-    let makeNode (x, y) = lift2 (,) x (delayFalse y)
-        elementsHover = treeMap (makeNode . hoverablesJoin) elements
-    in extractTreeSignal elementsHover
+extractHoverInfo : Tree (Signal Element) -> Tree (Signal Element, Signal Bool)
+extractHoverInfo =
+    let makeNode (elem, hov) = (elem, delayFalse hov)
+    in treeMap (makeNode . hoverablesJoin)
+
+extractClickPaths : Tree (Signal ()) -> Signal [Int]
+extractClickPaths elems =
+    let paths : Tree (Signal [Int])
+        paths = treeZipWith sampleOn
+                            elems
+                            (treeMap constant <| treeGetPaths elems)
+    in collapseTreeSignals paths
 
 {- Takes in the element and the hover information. Returns whether or not its
    children should be displayed on the screen.
@@ -108,12 +115,23 @@ renderTree menu =
                          ]
     in renderTopMenu
 
-renderMenu : [Tree (Signal String)] -> Signal Element
+renderMenu : [Tree (Signal String)] -> (Signal Element, Signal [Int])
 renderMenu t =
-    let elements : [Signal (Tree (Element, Bool))]
-        elements = map (extractHoverInfo . createElements) t
+    let hoverElements : [Tree (Signal Element, Signal Bool)]
+        hoverElements = map (extractHoverInfo . createElements) t
 
-        rendered : [Tree (Element, Bool)] -> Element
-        rendered tree = renderTree tree
-    in rendered <~ combine elements
+        oneTree : Tree (Signal Element, Signal Bool)
+        oneTree = Tree (constant <| spacer 1 1, constant False)
+                       hoverElements
+
+        clickPath : Signal [Int]
+        clickPath = extractClickPaths <| treeMap (clicksFromHover . snd) oneTree
+
+        signalPair : (Signal a, Signal b) -> Signal (a,b)
+        signalPair (x,y) = lift2 (,) x y
+
+        signalTrees : [Signal (Tree (Element, Bool))]
+        signalTrees = map (\e -> extractTreeSignal <| treeMap signalPair e)
+                          hoverElements
+    in (renderTree <~ combine signalTrees, clickPath)
 
