@@ -88,6 +88,9 @@ Elm compiles down to JavaScript to run in the browser. Executing Elm programs
 requires the compiled code as well as `elm-runtime.js` which is included with
 the compiler.
 
+*Note to Max: A Haskell program with the IO monad can very well not have all of
+its input at the start of execution*
+
 A typical functional program (e.g. in Haskell) is *transformative*: all input is
 available at the start of execution, and after a hopefully finite amount of time
 the program terminates with some output. In contrast, Elm programs are
@@ -123,12 +126,7 @@ area = lift (uncurry (*)) Window.dimensions
 
 In this case, the lifted function is multiplication, uncurried as to operate on
 pairs. As the Window library exposes width and height as both a pair and
-individually, we can also write `area = lift2 (*) Window.width Window.height`.
-
-Lifted functions are reevaluated whenever one of its input signals has an event,
-producing an event on the output signal. This in turn may be lifted into
-one or more functions. Events propagate until that is no longer the case, and
-the program waits for another event to occur. <!-- need better explanation -->
+individually, we can also write `area2 = lift2 (*) Window.width Window.height`.
 
 We can print the current area to the screen with `main = lift asText area`. The
 primitive `asText : a -> Element` renders almost anything into an Element,
@@ -136,10 +134,19 @@ which represents a DOM element. **Footnote** *Those following along in an Elm
 compiler, such as the one available at `elm-lang.org/try`, should add `import
 Window` to the top of the file.*
 
+The signals in an Elm program can be thought of as a Directed Acyclic Graph
+(DAG). Many signals depend on other signals for their output. For example, the
+`area` signal depends on `Window.dimensions` signal. Similarly, the `area2`
+signal depends on both the values of the `Window.width` and the `Window.height`
+signals. When an event is fired on a signal, it propogates down the DAG to all
+signals who depend on that signal and the outputs of those signals are
+reevaluated.
+
 Signals can remember state by using the `foldp` combinator. Familiar list
 folds apply a binary operation of an element and an accumulator to produce a new
 accumulator, over each list element in sequence. Folding from the *past*
-operates on and produces signals rather than lists:
+operates on all of the past values of a signal and produces a signal of the
+accumulator.
 
 ````
 foldr : (a -> b -> b) -> b -> [a]      -> b
@@ -223,12 +230,27 @@ Such an operation for signals would condense a `Signal (Signal a)` into a mere
 `Signal a`, but it cannot exist in general.
 
 ###A Naïve Menu
-*Briefly, what is the problem we run in to? Why is this whole paper
-non-trivial?*
+A menu can be thought of as an instance of a tree
 
-Now that we've established basic knowledge of Elm, we can rephrase the
-description of menus in terms of signals, and illustrate the a naïve approach
-encounters signals of signals.
+````
+data Tree a = Tree a [a]
+````
+
+Because the look-and-feel of submenus can change dynamically (such as
+highlighting on mouse hovering), menus cannot simply be represented with type `Element`.
+Therefore, every submenu can be represented as a `Signal Element`. Because we
+need to detect hover information about each submenu, our menu data type becomes
+
+`type Menu = Tree (Signal Element, Signal Bool)`.
+
+When an element is hovered upon, its submenu needs to be displayed in the GUI. A
+naïve implementation would create a function with the following type signature:
+
+`displaySubmenu : Bool -> Signal Element`
+
+However, if we try to `lift` this function or compose it, we get a signal of
+signals. Therefore, with this implementation, it is impossible to display
+dynamic elements in response to the `hoverable` signal.
 
 ###A tour of Graphics.Input
 Hoverable, hoverables, and the forum post
