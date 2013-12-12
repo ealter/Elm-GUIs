@@ -312,6 +312,10 @@ Notice that `pool.hoverable` is partially applied to `id` purely,
 and then lifted on to the argument. This is possible, utlimately, because
 `pool.hoverable` is pure.
 
+When a element changes, `hoverablesJoin` attaches the same hovering signal to
+the new element. If we were to display both the old and the new elements on the
+screen, hovering over either would trigger the signal.
+
 Just how novel is this small, but hugely significant change? The documentation
 for `hoverables` states that it allows users to "create and destroy elements
 dynamically and still detect hover information," but gives no further indicators
@@ -366,17 +370,62 @@ button Elements that do detect hover information are known statically. Without
 text label.
 
 ###Implementing Menus
-Or however you want to present the actual menus. Your section, Eliot.
-Three dirty tricks: spacers, ORing with parent, ORing with delay
-State in the DOM, not foldp or Automatons, "Elm's implentation of Arrowized FRP"
-How general?
-If the menu structure is known statically, then it is possible to create menus
-without hoverableJoin. However, in the general case menu structure is not known
-statically, and may even change as the program executes, for example when a
-different application becomes active. (Dynamic structure vs. dynamic strings?)
-Why you can't use the polymorphic a
 
-others sections....? Not needing to remember everything? Cite recent work?
+*Note: Here are some various paragraphs without order*
+
+Using `hoverablesJoin`, we created a structure of type
+`Tree (Signal Element, Signal Bool)` to represent our menus.
+Using the combinator `combine : [Signal a] -> Signal [a]`, we were able to turn
+this structure into a `Signal (Tree (Element, Bool))`. One we had that
+structure, we could render the menu using a pure function from
+`Tree (Element, Bool) -> Element` and then lift it. Similarly to limiting the
+use of the IO monad in Haskell code, it is advantageous to limit the use of
+signals in Elm code.
+
+Our first trick was to replace submenus not shown on the screen with spacers. A
+spacer is simply a blank rectangle with a specified with and height
+(`spacer : Int -> Int -> Element`). For every submenu, we would create both the
+submenu's Element and a spacer, and then choose which one to render based on the
+hover information. This helped in 2 ways. First of all, it allowed us to choose
+between two options without creating a signal of signals. Secondly, the spacer
+helped to align the submenu with its parent element.
+<!-- Should I explain this better? -->
+
+Our second trick fixed a race condition. A submenu was rendered to the screen if
+one of three conditions was met: the mouse was hovering upon its parent, the
+mouse was hovering upon it, or the mouse was hovering upon any of its
+descendents. As the mouse moved from the parent to the child, the child was
+often replaced with a spacer before it could detect that the mouse was hovering
+over it. To fix this problem, we created the following function:
+
+````
+delayFalse : Signal Bool -> Signal Bool
+delayFalse b = lift2 (||) b <| delay millisecond b
+````
+
+`delayFalse` makes a `Signal Bool` wait a millisecond to transition from True to
+False. By applying this function to every hovering boolean in the Menu
+structure, we gave the mouse time to move from an element to its submenu before
+that submenu disappeared.
+
+Interestingly enough, we were able to implement menus without explicitly storing
+the state of the menu. There are two ways to remember state in Elm code: `foldp`
+or `Automatons` **Footnote** *`Automatons` are Elm's implementation of Arrowized
+FRP*
+However, in our implementation we use the current browser DOM state to remember our
+state. Instead of storing the menu currently being displayed on the screen, we
+can derive that based on which element (if any) the mouse is currently hovering
+over. This allows for significantly cleaner code because the more state you have
+in a program, the harder it is to reason about.
+
+Note that the input to our menu is a `Tree (Signal String)`, but not a `Signal
+(Tree String)`. We are able to map from
+`Signal Element -> (Signal Element, Signal Bool)`, but not from
+`Element -> (Element, Bool)`. Therefore, if we tried to turn a `Signal (Tree
+String)` into a `Signal (Tree (Element, Bool))`, we would need to lift an
+impossible hoverable function of type `Element -> (Element, Bool)` on each
+element. Therefore, each individual menu element can contain dynamic
+information, but the menu structure must be static.
 
 ###Conclusion: To the Elm Community
 "of service"
