@@ -385,7 +385,7 @@ text label.
 Using `hoverablesJoin`, we created a structure of type
 `Tree (Signal Element, Signal Bool)` to represent our menus.
 Using the combinator `combine : [Signal a] -> Signal [a]`, we were able to turn
-this structure into a `Signal (Tree (Element, Bool))`. One we had that
+this structure into a `Signal (Tree (Element, Bool))`. Once we had that
 structure, we could render the menu using a pure function from
 `Tree (Element, Bool) -> Element` and then lift it. Similarly to limiting the
 use of the IO monad in Haskell code, it is advantageous to limit the use of
@@ -440,6 +440,15 @@ around this restriction by creating a tree that is larger than necessary and
 filling the unused nodes with empty string, which our implementation handles
 appropriately. <!-- Right? -->
 
+A possible solution for that issue would be to write a function of type
+`Signal (Tree a) -> Tree (Signal a)`. Although the `combine` combinator can turn
+a list of signals into a signal of lists, there isn't an inverse to turn a
+signal of lists into a list of signals. It is impossible to write the function
+`split : Signal [a] -> [Signal a]` because the size of the list in the input is
+dynamic, whereas the size of the output list is static. Since the `Tree` data
+structure contains lists, it is impossible to write a function of type
+`Signal (Tree a) -> Tree (Signal a)` without a `split` function.
+
 ###Conclusion: To the Elm Community
 "of service"
 
@@ -453,7 +462,6 @@ Although we have implemented all of this without language modifications, it is
 hoped that as the community becomes more familiar with functional GUIs, new
 libraries are added to incorporate some of our tricks, or even make them
 unnecessary.
-
 
 ###Acknowledgements
 ###References
