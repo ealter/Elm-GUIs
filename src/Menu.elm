@@ -14,9 +14,15 @@ import open SignalTricks
 
 createElements : Tree (Signal String) -> Tree (Signal Element)
 createElements spec =
-    let topLevel : Element -> Element
+    let topLevelWidth: Element -> Int
+        topLevelWidth elem =
+            if widthOf elem > 0
+            then widthOf elem + 10
+            else 0
+                        
+        topLevel : Element -> Element
         topLevel elem = color lightCharcoal
-                     <| container (widthOf elem + 10) (heightOf elem) middle elem
+                     <| container (topLevelWidth elem) (heightOf elem) middle elem
 
         --Needed because `maximum` errors on the empty list
         maxOrZero : [Int] -> Int
