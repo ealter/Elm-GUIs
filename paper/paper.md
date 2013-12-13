@@ -81,7 +81,7 @@ We have opted for clarity and thoroughness over brevity.
 This paper uses both general, theory-bound techniques and practical hacks to
 achieve its goals.
 
-###Signals: Time-varying values
+### Elm for Functional Programmers
 
 *This paragraph needs a better home or to be cut.*
 Elm compiles down to JavaScript to run in the browser. Executing Elm programs
@@ -91,6 +91,8 @@ the compiler.
 *Note to Max: A Haskell program with the IO monad can very well not have all of
 its input at the start of execution*
 
+*Note to Eliot: You want to take out that parenthesized phrase then?*
+
 A typical functional program (e.g. in Haskell) is *transformative*: all input is
 available at the start of execution, and after a hopefully finite amount of time
 the program terminates with some output. In contrast, Elm programs are
@@ -99,7 +101,9 @@ indefinitely adjust output with each input. In simple programs, the inputs at a
 given time fully determine the output. More complex programs will take advantage
 of Elm's ability to remember state.
 
-A time-varying value of a polymorphic `a` is represented by `Signal a`. For
+#### Signals: Time-varying values
+
+A time-varying value of a polymorphic type `a` is represented by `Signal a`. For
 example, the term `constant 150` has type `Signal Int`. The combinator
 `constant` creates a signal whose value never changes. A more interesting signal
 is the primitive `Window.dimensions : Signal (Int, Int)`. This signal represents
@@ -108,7 +112,8 @@ asynchronous in that they update at no set time, just as the window may remain
 the same size idefinitely. Signals update in discrete events, but are continuous
 in the sense that they are always defined.
 
-The function `lift` allows us to execute a pure function onto a signal.
+The function `lift` allows us to execute a pure function on a signal of inputs,
+producing a signal of outputs.
 (Although lifting is a general functional concept, in Elm it has only this
 meaning.)
 
@@ -142,11 +147,13 @@ signals. When an event is fired on a signal, it propogates down the DAG to all
 signals who depend on that signal and the outputs of those signals are
 reevaluated.
 
+#### Remembering State
+
 Signals can remember state by using the `foldp` combinator. Familiar list
 folds apply a binary operation of an element and an accumulator to produce a new
 accumulator, over each list element in sequence. Folding from the *past*
-operates on all of the past values of a signal and produces a signal of the
-accumulator.
+operates on all of the values of a signal as they occur and produces a signal of
+the accumulator.
 
 ````
 foldr : (a -> b -> b) -> b -> [a]      -> b
@@ -184,7 +191,7 @@ clock = foldp (+) 0 (fps 10)
 The `fps n` combinator produces a signal of the time elapsed since its last
 event, updated `n` times a second. We sum these deltas starting with zero. Then
 we create a function from a time to one of two signals, one of which is trivial
-and one of which depends on `Window.width`:
+and one of which depends on the history of `Window.width`:
 
 ````
 switcher : Time -> Signal Int
@@ -237,20 +244,21 @@ data Tree a = Tree a [a]
 ````
 
 Because the look-and-feel of submenus can change dynamically (such as
-highlighting on mouse hovering), menus cannot simply be represented with type `Element`.
-Therefore, every submenu can be represented as a `Signal Element`. Because we
-need to detect hover information about each submenu, our menu data type becomes
+highlighting on mouse hovering), menus cannot simply be represented with type
+`Element`. Therefore, every submenu can be represented as a `Signal Element`.
+Because we need to detect hover information about each submenu, our menu data
+type becomes
 
 `type Menu = Tree (Signal Element, Signal Bool)`.
 
-When an element is hovered upon, its submenu needs to be displayed in the GUI. A
+When an Element is hovered upon, its submenu needs to be displayed in the GUI. A
 naïve implementation would create a function with the following type signature:
 
 `displaySubmenu : Bool -> Signal Element`
 
-However, if we try to `lift` this function or compose it, we get a signal of
-signals. Therefore, with this implementation, it is impossible to display
-dynamic elements in response to the `hoverable` signal.
+However, if we try to `lift` this function on a value of type `Signal Bool`, we
+get a signal of signals (of Elements). Therefore, with this implementation, it
+is impossible to display dynamic elements in response to the `hoverable` signal.
 
 ###A tour of Graphics.Input
 Hoverable, hoverables, and the forum post
@@ -371,7 +379,8 @@ text label.
 
 ###Implementing Menus
 
-*Note: Here are some various paragraphs without order*
+*Note: Here are some various paragraphs without order*  
+*Yeah, really. Some good pieces but it needs a structure.*
 
 Using `hoverablesJoin`, we created a structure of type
 `Tree (Signal Element, Signal Bool)` to represent our menus.
@@ -384,13 +393,15 @@ signals in Elm code.
 
 Our first trick was to replace submenus not shown on the screen with spacers. A
 spacer is simply a blank rectangle with a specified with and height
-(`spacer : Int -> Int -> Element`). For every submenu, we would create both the
-submenu's Element and a spacer, and then choose which one to render based on the
-hover information. This helped in 2 ways. First of all, it allowed us to choose
+(`spacer : Int -> Int -> Element`). For every menu item, we create both the
+menu Element and a spacer. The spacer has the same width as the Element, but a
+height of 1. We then switch between menu and the spacer based on hover
+information. This helped in two ways. First of all, it allowed us to choose
 between two options without creating a signal of signals. Secondly, the spacer
 helped to align the submenu with its parent element.
-<!-- Should I explain this better? -->
 
+<!-- Do you describe the race condition anywhere? Also I think it's part of the
+problem and not languager or implementation -dependent. -->
 Our second trick fixed a race condition. A submenu was rendered to the screen if
 one of three conditions was met: the mouse was hovering upon its parent, the
 mouse was hovering upon it, or the mouse was hovering upon any of its
@@ -398,25 +409,24 @@ descendents. As the mouse moved from the parent to the child, the child was
 often replaced with a spacer before it could detect that the mouse was hovering
 over it. To fix this problem, we created the following function:
 
+<!-- I think this can have a better name, maybe `extend`? -->
 ````
 delayFalse : Signal Bool -> Signal Bool
 delayFalse b = lift2 (||) b <| delay millisecond b
 ````
 
 `delayFalse` makes a `Signal Bool` wait a millisecond to transition from True to
-False. By applying this function to every hovering boolean in the Menu
-structure, we gave the mouse time to move from an element to its submenu before
-that submenu disappeared.
+False. By applying this function to every hovering Boolean in the Menu
+structure, we gave the mouse time to move from a menu Element to its submenu
+before that submenu disappeared.
 
 Interestingly enough, we were able to implement menus without explicitly storing
-the state of the menu. There are two ways to remember state in Elm code: `foldp`
-or `Automatons` **Footnote** *`Automatons` are Elm's implementation of Arrowized
-FRP*
-However, in our implementation we use the current browser DOM state to remember our
+the state of the menu. There are two ways to remember state in Elm code:
+`foldp`, or Elm's implementation of Arrowized FRP known as `Automaton`. However,
+in our implementation we use the current browser DOM state to remember our
 state. Instead of storing the menu currently being displayed on the screen, we
-can derive that based on which element (if any) the mouse is currently hovering
-over. This allows for significantly cleaner code because the more state you have
-in a program, the harder it is to reason about.
+can derive it based on which Element (if any) the mouse is currently hovering
+over. The elimination of state from our code allows it to be much cleaner.
 
 Note that the input to our menu is a `Tree (Signal String)`, but not a `Signal
 (Tree String)`. We are able to map from
@@ -425,7 +435,10 @@ Note that the input to our menu is a `Tree (Signal String)`, but not a `Signal
 String)` into a `Signal (Tree (Element, Bool))`, we would need to lift an
 impossible hoverable function of type `Element -> (Element, Bool)` on each
 element. Therefore, each individual menu element can contain dynamic
-information, but the menu structure must be static.
+information, but the menu structure must be static. We can, in practice, get
+around this restriction by creating a tree that is larger than necessary and
+filling the unused nodes with empty string, which our implementation handles
+appropriately. <!-- Right? -->
 
 ###Conclusion: To the Elm Community
 "of service"
