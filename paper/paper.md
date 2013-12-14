@@ -12,7 +12,7 @@ and quickly discovered an apparent incompatibility between Elm's mouse-hover
 detection primitive and the constraints of the language. This concern only
 surfaces when dealing with highly dynamic data. We present a non-obvious
 technique to address the issue without modifying the Elm compiler. It
-generalizes to other functions in Elm's Graphics.Input library, which includes
+generalizes to other functions in Elm's `Graphics.Input` library, which includes
 (besides hover detection) GUI mainstays such as buttons, checkboxes, and text
 fields. We also contribute techniques for the representation and display of
 menus in Elm, and contrast our work with an existing Elm web application.
@@ -38,13 +38,16 @@ more difficult task of managing time-varying hover information about
 time-varying areas.
 
 There are two features of Elm we are deliberately avoiding. First is the
-extensive raster drawing library, Graphics.Collage. Dynamic hover detection is
+extensive raster drawing library, `Graphics.Collage`. Dynamic hover detection is
 not problematic when using this library because it can be done purely through
 manual collision detection. However, if we used this library, our GUI would be a
-single raster animation and not a DOM tree. Secondly, the Graphics.Input library
-contains wrappers around HTML checkboxes and dropdowns. While we refer to these
-to show how the technique we develop for hovering generalizes, we avoid them
-when constructing our menus.
+single raster animation and not a DOM tree. Secondly, the `Graphics.Input`
+library contains wrappers around HTML checkboxes and dropdowns. We consider
+creating GUIs with these to be uninteresting and wanted to persue something more
+general. This led to the choice of an interface typically found in the operating
+system rather than the browser. We do refer to the native GUI constructs to show
+how the technique we develop for hovering generalizes, as the API for buttons
+and hover detection is very similar.
 
 It is difficult for the authors to assess what level of knowledge should be
 assumed on the part of the reader. Firstly, readers will range from Elm's
@@ -60,7 +63,7 @@ We contribute:
 * The identification of an apparent limitation in Elm's hover detection library,
  solved by a non-trivial usage pattern that does not require modifications to
  the Elm compiler or runtime, and that generalizes to other functions in
- Graphics.Input.
+ `Graphics.Input`.
 * An implementation of desktop-style menu in Elm, which incorporates several
  noteworthy "tricks" as well as general style practices.
 * An analysis of TodoFRP, the current state-of-the-art in dynamic Elm GUIs. We
@@ -73,33 +76,26 @@ is targeted to readers familiar with functional programming but not FRP, and may
 be skipped by those already familiar with Elm. Section 3 presents a first
 attempt at a menu and details the issue we encountered. Section 4 presents Elm's
 hover detection for DOM elements and how it can be extended to meet our needs.
-Section 5 analyzes TodoFRP. Section 6 explains our menu implementation in
-detail. Section 7 concludes with a notice to the Elm community.
+Section 5 explains our menu implementation in detail. Section 6 analyzes
+TodoFRP. Section 7 concludes with a notice to the Elm community.
 
 Sentences that need a home:
-We have opted for clarity and thoroughness over brevity.
+We have opted for clarity and thoroughness over brevity.  
 This paper uses both general, theory-bound techniques and practical hacks to
-achieve its goals.
-
-### Elm for Functional Programmers
-
-*This paragraph needs a better home or to be cut.*
+achieve its goals.  
 Elm compiles down to JavaScript to run in the browser. Executing Elm programs
 requires the compiled code as well as `elm-runtime.js` which is included with
 the compiler.
 
-*Note to Max: A Haskell program with the IO monad can very well not have all of
-its input at the start of execution*
+### Elm for Functional Programmers
 
-*Note to Eliot: You want to take out that parenthesized phrase then?*
-
-A typical functional program (e.g. in Haskell) is *transformative*: all input is
-available at the start of execution, and after a hopefully finite amount of time
-the program terminates with some output. In contrast, Elm programs are
-*reactive*: not all input is available immediately and the program may
-indefinitely adjust output with each input. In simple programs, the inputs at a
-given time fully determine the output. More complex programs will take advantage
-of Elm's ability to remember state.
+A typical functional program is *transformative*: all input is available at the
+start of execution, and after a hopefully finite amount of time the program
+terminates with some output. In contrast, Elm programs are *reactive*: not all
+input is available immediately and the program may indefinitely adjust output
+with each input. In simple programs, the inputs at a given time fully determine
+the output. More complex programs will take advantage of Elm's ability to
+remember state.
 
 #### Signals: Time-varying values
 
@@ -113,9 +109,8 @@ the same size idefinitely. Signals update in discrete events, but are continuous
 in the sense that they are always defined.
 
 The function `lift` allows us to execute a pure function on a signal of inputs,
-producing a signal of outputs.
-(Although lifting is a general functional concept, in Elm it has only this
-meaning.)
+producing a signal of outputs. (Although lifting is a general functional
+concept, in Elm it has only this meaning.)
 
 ````
 lift : (a -> b) -> Signal a -> Signal b
@@ -260,7 +255,7 @@ However, if we try to `lift` this function on a value of type `Signal Bool`, we
 get a signal of signals (of Elements). Therefore, with this implementation, it
 is impossible to display dynamic elements in response to the `hoverable` signal.
 
-###A tour of Graphics.Input
+###A tour of `Graphics.Input`
 Hoverable, hoverables, and the forum post
 The similar type signatures
 
@@ -353,7 +348,7 @@ and a few dirty tricks of its own.
 
 TodoFRP presents the user with a text field asking, "what needs to be done?".
 Entered todo entries become DOM elements, which can be deleted with a "x"
-button, also a DOM element. The button is implemented using the Graphics.Input
+button, also a DOM element. The button is implemented using the `Graphics.Input`
 function  
 
 ```` customButtons : a -> { events : Signal a,  
@@ -411,11 +406,11 @@ over it. To fix this problem, we created the following function:
 
 <!-- I think this can have a better name, maybe `extend`? -->
 ````
-delayFalse : Signal Bool -> Signal Bool
-delayFalse b = lift2 (||) b <| delay millisecond b
+extend : Signal Bool -> Signal Bool
+extend b = lift2 (||) b (delay millisecond b)
 ````
 
-`delayFalse` makes a `Signal Bool` wait a millisecond to transition from True to
+`extend` makes a `Signal Bool` wait a millisecond to transition from True to
 False. By applying this function to every hovering Boolean in the Menu
 structure, we gave the mouse time to move from a menu Element to its submenu
 before that submenu disappeared.
@@ -446,8 +441,8 @@ a list of signals into a signal of lists, there isn't an inverse to turn a
 signal of lists into a list of signals. It is impossible to write the function
 `split : Signal [a] -> [Signal a]` because the size of the list in the input is
 dynamic, whereas the size of the output list is static. Since the `Tree` data
-structure contains lists, it is impossible to write a function of type
-`Signal (Tree a) -> Tree (Signal a)` without a `split` function.
+structure contains lists, it is therefore impossible to write a function of type
+`Signal (Tree a) -> Tree (Signal a)`.
 
 ###Conclusion: To the Elm Community
 "of service"
@@ -464,4 +459,8 @@ libraries are added to incorporate some of our tricks, or even make them
 unnecessary.
 
 ###Acknowledgements
+We would like to thank Evan Czaplicki and Stephen Chong for creating Elm, and
+the Elm community for growing it. We thank Norman Ramsey for his guidance
+through functional programming, and our paper reviewers, .....  .
+
 ###References
