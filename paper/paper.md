@@ -1,9 +1,7 @@
-Dynamic Hover Detection
-=======================
+Dynamic Hover Detection  
 Attempts to Create GUIs in Elm
-------------------------------
 
-###Abstract
+Abstract
 
 The language Elm was designed to be a practical application of Functional
 Reactive Programming (FRP) to create Graphical User Interfaces (GUIs). We
@@ -17,14 +15,12 @@ generalizes to other functions in Elm's `Graphics.Input` library, which includes
 fields. We also contribute techniques for the representation and display of
 menus in Elm, and contrast our work with an existing Elm web application.
 
-###Introduction
-Elm was introduced in March 2012 in Evan Czaplicki's senior thesis, "Concurrent
-FRP for GUIs". He and his adviser, Stephen Chong, published "Asynchronous FRP
-for GUIs" at PLDI 2013. Both papers are comprehensive overviews of Elm, and
+#Introduction
+Elm was introduced in March 2012 in Evan Czaplicki's senior thesis, *Concurrent
+FRP for GUIs*. He and his adviser, Stephen Chong, published *Asynchronous FRP
+for GUIs* at PLDI 2013. Both papers are comprehensive overviews of Elm, and
 additionally provide excellent literature reviews of previous FRP GUI endeavors,
 of which there are several.
-
-<!-- Should we discuss what a signal is earlier? -->
 
 We chose menus as an example GUI to implement in Elm. The particular design
 places the top-level menu at the top of the screen, similar to Mac OS X and many
@@ -87,7 +83,7 @@ Elm compiles down to JavaScript to run in the browser. Executing Elm programs
 requires the compiled code as well as `elm-runtime.js` which is included with
 the compiler.
 
-### Elm for Functional Programmers
+# Elm for Functional Programmers
 
 A typical functional program is *transformative*: all input is available at the
 start of execution, and after a hopefully finite amount of time the program
@@ -97,7 +93,7 @@ with each input. In simple programs, the inputs at a given time fully determine
 the output. More complex programs will take advantage of Elm's ability to
 remember state.
 
-#### Signals: Time-varying values
+## Signals: Time-varying values
 
 A time-varying value of a polymorphic type `a` is represented by `Signal a`. For
 example, the term `constant 150` has type `Signal Int`. The combinator
@@ -142,7 +138,7 @@ signals. When an event is fired on a signal, it propogates down the DAG to all
 signals who depend on that signal and the outputs of those signals are
 reevaluated.
 
-#### Remembering State
+## Remembering State
 
 Signals can remember state by using the `foldp` combinator. Familiar list
 folds apply a binary operation of an element and an accumulator to produce a new
@@ -163,7 +159,7 @@ possible to create signals that depend on every event to ever occur on a signal.
 However, most folded functions do not store every value explicitly (cons is an
 exception) and space can be saved by remembering only the accumulator.
 
-#### No Signals of Signals
+## No Signals of Signals
 
 The ability to create a signal dependent on past state has a potentially
 disastrous implication for space performance. Czaplicki and Chong explain the
@@ -231,7 +227,7 @@ join :: Monad m => m (m a) -> m a
 Such an operation for signals would condense a `Signal (Signal a)` into a mere
 `Signal a`, but it cannot exist in general.
 
-###A Naïve Menu
+#A Naïve Menu
 A menu can be thought of as an instance of a tree
 
 ````
@@ -255,25 +251,24 @@ However, if we try to `lift` this function on a value of type `Signal Bool`, we
 get a signal of signals (of Elements). Therefore, with this implementation, it
 is impossible to display dynamic elements in response to the `hoverable` signal.
 
-###A tour of `Graphics.Input`
-Hoverable, hoverables, and the forum post
-The similar type signatures
+# Detecting Hover Information
 
-Hover information for Elements is provided by the function
+Elm provides a function to obtain the hover information from an Element.
 
 ````hoverable : Element -> (Element, Signal Bool)````
 
-which works well when the Element is pure (not a signal). 
-
+The returned Element is visually identical to argument, but now detects hover
+information. The signals of Booleans reflects the hover status of the this
+Element, not the original. This function works well when the Element is pure
+(not a signal). However, when we try to lift it, we get
 
 ````lift hoverable : Signal Element -> Signal (Element, Signal Bool)````
 
-````lift hoverable : Signal Element -> (Signal Element, Signal Signal Bool)````
-
-The result is a signal of signals, which are problematic for reasons previously
-stated. There does not exist a general join function to operate on the Signal
-Signal Bool. However, it is possible to implement the following function
-using less general techniques:
+Although it may not appear to be so at first, the result type is a signal of
+signals. It is possible to transform the result into `Signal Signal (Element,
+Bool)`, but a more mentally convenient type is `(Signal Element, Signal Signal
+Bool)`. There does not exist a general join function to operate on the `Signal
+Signal Bool`. However, it is possible to implement the following function:
 
 ````hoverableJoin: Signal Element -> (Signal Element, Signal Bool)````
 
@@ -289,8 +284,10 @@ The polymorphic `a` type can serve as an identifier. The first value supplies
 the default value of `events` (signals must always be defined and so a default
 value is required). The returned record includes the `events` signals and the
 `hoverable` function, which in general may be applied multiple times so that
-multiple elements report on `events`. Additionally, `hoverables` is used to
-implement `hoverable`:
+multiple elements report on `events`. The `(Bool -> a)` is used to identify
+which Element experienced the event; a common use is `a = (Int, Bool)` where the
+integer identifies the Element and the Bool is the event. Additionally,
+`hoverables` is used to implement `hoverable`:
 
 ````
 hoverable : Element -> (Element, Signal Bool)
@@ -299,10 +296,10 @@ hoverable elem =
         in  (pool.hoverable id elem, pool.events)
 ````
 
-It ignores the polymorphism and instead create a Boolean signal that is
-originally False and use the identity function to not alter the hoverable
-information. With a simple change, we can create a function that acts on `Signal
-Element` instead of `Element`:
+It ignores the polymorphism (`a = Bool`) and instead create a Boolean signal
+that is originally false and use the identity function to not alter the
+hoverable information. With a simple change, we can create a function that acts
+on `Signal Element` instead of `Element`:
 
 ````
 hoverablesJoin : Signal Element -> (Signal Element, Signal Bool)
@@ -315,11 +312,8 @@ Notice that `pool.hoverable` is partially applied to `id` purely,
 and then lifted on to the argument. This is possible, utlimately, because
 `pool.hoverable` is pure.
 
-When a element changes, `hoverablesJoin` attaches the same hovering signal to
-the new element. If we were to display both the old and the new elements on the
-screen, hovering over either would trigger the signal.
-
-Just how novel is this small, but hugely significant change? The documentation
+Just how novel is this small, but hugely significant change? The
+[documentation](http://docs.elm-lang.org/library/Graphics/Input.elm#hoverables)
 for `hoverables` states that it allows users to "create and destroy elements
 dynamically and still detect hover information," but gives no further indicators
 on how to do so. Though the Elm website is full of examples, there are none for
@@ -329,7 +323,11 @@ introduced these functions, Czaplicki said that "`hoverables` is very low level,
 but the idea is that you can build any kind of nicer abstraction on top of it."
 We have done just that.
 
-With this power, it becomes easy to create an infinite loop. Suppose an Element
+When a element changes, `hoverablesJoin` attaches the same hovering signal to
+the new element. If we were to display both the old and the new elements on the
+screen, hovering over either would trigger the signal.
+
+More dangerously, it becomes easy to create an infinite loop. Suppose an Element
 shrinks on hover. Suppose the cursor hovers on the Element, which is then
 replaced by a smaller Element, so the cursor is no longer hovering on the
 Element. Then the original Element is put back, but is now being hovered on!
@@ -338,41 +336,9 @@ unavoidable in any language or system that allows hover targets to change size
 in response to hover events.
 <!-- Maybe put the code for this example in the appendix? -->
 
-###Interlude: Analyzing TodoFRP
+## Generalized joins on `Graphics.Input`
 
-We examine [TodoFRP](https://github.com/evancz/TodoFRP), a simple Elm web app
-created by Czapliki, to both pinpoint the problem and show its universality.
-TodoFRP is the current state-of-the-art in highly reactive Elm GUIs. It provides
-examples of different levels of reactivity, a familiar context for Elm veterans,
-and a few dirty tricks of its own.
-
-TodoFRP presents the user with a text field asking, "what needs to be done?".
-Entered todo entries become DOM elements, which can be deleted with a "x"
-button, also a DOM element. The button is implemented using the `Graphics.Input`
-function  
-
-```` customButtons : a -> { events : Signal a,  
-                      customButton : a -> Element -> Element -> Element -> Element }````
-
-Notice the similarity with `hoverables`. Each call of `customButton` provides
-the identifier event when the button is clicked, and three (pure) Elements to
-display: one normally, one on hover, and one on click. The result is an
-`Element`, not a `Signal Element`, that nevertheless changes among those three in
-response to the mouse. This is possible because the result Element's dimensions
-are taken to be the maximum of the three inputs' dimensions. Even if the
-Elements have different sizes, the resulting element and therefore the
-hover surface remains fixed in size.
-
-In the case of TodoFRP, these Elements are diferent colors of the "x" and the
-same for each todo entry. The polymorphic `a`s are unique identifiers
-(ascending integers) for each entry.
-
-The todo label Elements are dynamic and do not detect hover information. The
-button Elements that do detect hover information are known statically. Without
-`hoverablesJoin`, it would be impossible to dismiss a todo by clicking on its
-text label.
-
-###Implementing Menus
+#Implementing Menus
 
 *Note: Here are some various paragraphs without order*  
 *Yeah, really. Some good pieces but it needs a structure.*
@@ -444,7 +410,41 @@ dynamic, whereas the size of the output list is static. Since the `Tree` data
 structure contains lists, it is therefore impossible to write a function of type
 `Signal (Tree a) -> Tree (Signal a)`.
 
-###Conclusion: To the Elm Community
+#Related Work: TodoFRP
+
+We examine [TodoFRP](https://github.com/evancz/TodoFRP), a simple Elm web app
+created by Czapliki, to both pinpoint the problem and show its universality.
+TodoFRP is the current state-of-the-art in highly reactive Elm GUIs. It provides
+examples of different levels of reactivity, a familiar context for Elm veterans,
+and a few dirty tricks of its own.
+
+TodoFRP presents the user with a text field asking, "what needs to be done?".
+Entered todo entries become DOM elements, which can be deleted with a "x"
+button, also a DOM element. The button is implemented using the `Graphics.Input`
+function  
+
+```` customButtons : a -> { events : Signal a,  
+                      customButton : a -> Element -> Element -> Element -> Element }````
+
+Notice the similarity with `hoverables`. Each call of `customButton` provides
+the identifier event when the button is clicked, and three (pure) Elements to
+display: one normally, one on hover, and one on click. The result is an
+`Element`, not a `Signal Element`, that nevertheless changes among those three in
+response to the mouse. This is possible because the result Element's dimensions
+are taken to be the maximum of the three inputs' dimensions. Even if the
+Elements have different sizes, the resulting element and therefore the
+hover surface remains fixed in size.
+
+In the case of TodoFRP, these Elements are diferent colors of the "x" and the
+same for each todo entry. The polymorphic `a`s are unique identifiers
+(ascending integers) for each entry.
+
+The todo label Elements are dynamic and do not detect hover information. The
+button Elements that do detect hover information are known statically. Without
+`hoverablesJoin`, it would be impossible to dismiss a todo by clicking on its
+text label.
+
+#Conclusion: To the Elm Community
 "of service"
 
 It's true that we've used the hoverables function in a way that it was
@@ -458,9 +458,9 @@ hoped that as the community becomes more familiar with functional GUIs, new
 libraries are added to incorporate some of our tricks, or even make them
 unnecessary.
 
-###Acknowledgements
+##Acknowledgements
 We would like to thank Evan Czaplicki and Stephen Chong for creating Elm, and
 the Elm community for growing it. We thank Norman Ramsey for his guidance
-through functional programming, and our paper reviewers, .....  .
+through functional programming, and our paper reviewers, ...  .
 
-###References
+##References
