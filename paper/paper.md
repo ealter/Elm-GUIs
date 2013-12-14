@@ -20,7 +20,8 @@ Elm was introduced in March 2012 in Evan Czaplicki's senior thesis, *Concurrent
 FRP for GUIs*. He and his adviser, Stephen Chong, published *Asynchronous FRP
 for GUIs* at PLDI 2013. Both papers are comprehensive overviews of Elm, and
 additionally provide excellent literature reviews of previous FRP GUI endeavors,
-of which there are several.
+of which there are several. Elm compiles down to JavaScript to run in the
+browser, making it remarkably portable.
 
 We chose menus as an example GUI to implement in Elm. The particular design
 places the top-level menu at the top of the screen, similar to Mac OS X and many
@@ -74,14 +75,6 @@ attempt at a menu and details the issue we encountered. Section 4 presents Elm's
 hover detection for DOM elements and how it can be extended to meet our needs.
 Section 5 explains our menu implementation in detail. Section 6 analyzes
 TodoFRP. Section 7 concludes with a notice to the Elm community.
-
-Sentences that need a home:
-We have opted for clarity and thoroughness over brevity.  
-This paper uses both general, theory-bound techniques and practical hacks to
-achieve its goals.  
-Elm compiles down to JavaScript to run in the browser. Executing Elm programs
-requires the compiled code as well as `elm-runtime.js` which is included with
-the compiler.
 
 # Elm for Functional Programmers
 
