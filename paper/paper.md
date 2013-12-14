@@ -466,7 +466,9 @@ display: one normally, one on hover, and one on click. The result is an
 response to the mouse. This is possible because the result Element's dimensions
 are taken to be the maximum of the three inputs' dimensions. Even if the
 Elements have different sizes, the resulting element and therefore the
-hover surface remains fixed in size.
+hover surface remains fixed in size. Although the same join technique can be
+applied, we find it likely that it would not work as intended. <!--TODO: try it
+and see. -->
 
 In the case of TodoFRP, these Elements are diferent colors of the "x" and the
 same for each todo entry. The polymorphic `a`s are unique identifiers
@@ -478,18 +480,22 @@ button Elements that do detect hover information are known statically. Without
 text label.
 
 #Conclusion: To the Elm Community
-"of service"
 
-It's true that we've used the hoverables function in a way that it was
+It's true that we've used the `hoverables` function in a way that it was
 (probably) never meant to be used, and there are some caveats involved in doing
 so. Many small GUIs do not require dynamic, hover-detecting elements. However,
 most large mouse-based GUIs do, and creating them in Elm will necessarily
 encounter the obstacles we have described.
 
-Although we have implemented all of this without language modifications, it is
+We have implemented all of this without language modifications. However, it is
 hoped that as the community becomes more familiar with functional GUIs, new
 libraries are added to incorporate some of our tricks, or even make them
-unnecessary.
+unnecessary. Elm's upcoming third-party library sharing system looks to be an
+excellent opportunity to refine abstractions and idioms for GUIs.
+
+We present these techniques and analysis in the hopes they are of service to the
+Elm and FRP communities. We hope this paper becomes useful in Elm's goal of
+making GUIs simpler to implement and more robust to use.
 
 ##Acknowledgements
 We would like to thank Evan Czaplicki and Stephen Chong for creating Elm, and
