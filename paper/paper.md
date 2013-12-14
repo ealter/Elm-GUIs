@@ -337,6 +337,40 @@ in response to hover events.
 <!-- Maybe put the code for this example in the appendix? -->
 
 ## Generalized joins on `Graphics.Input`
+It is not just hover detection that follows the convention of the two names
+primitives, singular and plural, but most of Elm's wrappers around HTML GUI
+components. They are therefore receptive of the same join technique. For
+labelled buttons, press events are represented by unit or a provided identifier:
+
+````
+ button : String -> (Element, Signal ())
+ buttons : a -> { events : Signal a,
+                  button : a -> String -> Element }
+````
+
+If we wish to create a button whose string label varies, the types allow the
+same exact same technique to be applied. (We have not tested whether this
+approach works, but the types allow it.) The same goes for text fields, which
+can be given text based on what else is known in the program, and checkboxes. As
+currently implemented, checkboxes have Boolean state so dynamic behavior has
+limited use. However, we can imagine the ability to disable ("gray-out") a
+checkbox in response to other choices in a form.
+
+Drop-down menus do not use the same paradigm as the rest; there is `dropDown`
+but no `dropDowns`. This is unfortunate not only because there seems to be no
+way to supply a `Signal [String]`, but because drop-downs are commonly used in
+groups. Multiple menus reporting on one signal would be very convenient. If the
+menus were dynamic, it may be useful to determine when an event occurs because
+the user makes a selection vs. when the menu updates and the previously selected
+string is no longer available.
+
+`Graphics.Input` does not currently support radio buttons.
+
+<!-- Cut this? -->
+As an aside, `button` is an impure function. One can create two buttons with the
+same label and place them in different places on the screen (or place one not at
+all), and the signals of press events will be different. Lifting a joined
+version onto a signal of strings does not change this fact.
 
 #Implementing Menus
 
@@ -370,7 +404,6 @@ descendents. As the mouse moved from the parent to the child, the child was
 often replaced with a spacer before it could detect that the mouse was hovering
 over it. To fix this problem, we created the following function:
 
-<!-- I think this can have a better name, maybe `extend`? -->
 ````
 extend : Signal Bool -> Signal Bool
 extend b = lift2 (||) b (delay millisecond b)
