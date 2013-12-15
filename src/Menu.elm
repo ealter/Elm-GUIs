@@ -2,6 +2,7 @@ module Menu (renderMenu) where
 
 import Window
 import Graphics.Input (hoverables)
+import Mouse
 import open Tree
 import open SignalTricks
 
@@ -64,7 +65,10 @@ extractClickPaths elems =
         paths = treeZipWith sampleOn
                             elems
                             (treeMap constant <| treeGetPaths elems)
-    in collapseTreeSignals paths
+        
+        emptyClick : Signal [a]
+        emptyClick = lift (\_ -> []) Mouse.clicks
+    in merge (collapseTreeSignals paths) emptyClick
 
 {- Takes in the element and the hover information. Returns whether or not its
    children should be displayed on the screen.
