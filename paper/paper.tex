@@ -440,20 +440,11 @@ convenient. If the menus were dynamic, it would be useful for the API to
 indicate when an event occurred because the user makes a selection vs.~when the
 menu updated and the previously selected string was no longer available.
 
-\texttt{Graphics.Input} does not currently support radio buttons, but one could
-imagine them being added in a way similar to the others. However, it is worth
-observing that the pattern itself leaves something to be desired, namely, that
-the functions are impure. One can apply \texttt{hoverable} to an Element twice,
-place the resulting Elements in in different places on the screen (or place one
-not at all), and the signals of Booleans will be different. This is true,
-analogously, of all the functions of similar type in the library. We know of no
-alternative that has been proposed, and do not have one ourselves. However, we
-point out this deficiency in order to illustrate that the library still has room
-for incremental and perhaps even radical growth.
-
 \section{Implementing Menus}\label{implementing-menus}
 
-A menu can be thought of as an instance of a tree.
+Having established the need for \texttt{hoverablesJoin} and implementing it, we
+now turn to stated task of creating menus. A menu can be thought of as an
+instance of a tree.
 
 \texttt{data Tree a = Tree a [a]}
 
