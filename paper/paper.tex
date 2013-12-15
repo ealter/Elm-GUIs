@@ -448,19 +448,24 @@ instance of a tree.
 
 \texttt{data Tree a = Tree a [a]}
 
-Using \texttt{hoverablesJoin}, we created a structure of type
-\texttt{Tree (Signal Element, Signal Bool)} to represent our menus.
-Using the combinator
-\texttt{combine : {[}Signal a{]} -\textgreater{} Signal {[}a{]}}, we
-were able to turn this structure into a
-\texttt{Signal (Tree (Element, Bool))}. Once we had that structure, we
-could render the menu using a pure function from
-\texttt{Tree (Element, Bool) -\textgreater{} Element} and then lift it.
-Similarly to limiting the use of the IO monad in Haskell code, it is
-advantageous to limit the use of signals in Elm code.
+Using \texttt{plainText : String -> Element}, we can take a menu specification
+of type \texttt{Tree (Signal String)} and turn into a \texttt{Tree (Signal
+Element}. From there, we can use \texttt{hoverablesJoin} to get the hover
+information of each element and create a structure of type \texttt{Tree (Signal
+Element, Signal Bool)} to represent our menus.  By recursing on the combinator
+\texttt{combine : {[}Signal a{]} -\textgreater{} Signal {[}a{]}}, we are able to
+turn this structure into a \texttt{Signal (Tree (Element, Bool))}. By changing
+our internal structure into a signal of trees instead of a tree of signals, we
+can do the rest of our work with pure functions that operate on the tree, rather
+than on individual signals.  For example, our rendering function
+\texttt{renderMenu : Tree (Element, Bool) -\textgreater{} Element} can simply be
+lifted onto the menu structure.  Similarly to limiting the use of the IO monad
+in Haskell code, it is advantageous to limit the use of signals in Elm code.
 
-Our first trick was to replace submenus not shown on the screen with
-spacers. A spacer is simply a blank rectangle with a specified with and
+The first problem in implementing menus is twofold: how to position submenus on the
+screen and how to hide submenus that should not be rendered. To get around these
+problems, we replace submenus not shown on the screen with
+spacers. A spacer is simply a blank rectangle with a specified width and
 height
 (\texttt{spacer : Int -\textgreater{} Int -\textgreater{} Element}). For
 every menu item, we create both the menu Element and a spacer. The
@@ -470,23 +475,62 @@ helped in two ways. First of all, it allowed us to choose between two
 options without creating a signal of signals. Secondly, the spacer
 helped to align the submenu with its parent element.
 
-Our second trick fixed a race condition. A submenu was rendered to the
-screen if one of three conditions was met: the mouse was hovering upon
-its parent, the mouse was hovering upon it, or the mouse was hovering
-upon any of its descendants. As the mouse moved from the parent to the
-child, the child was often replaced with a spacer before it could detect
-that the mouse was hovering over it. To fix this problem, we created the
-following function:
+\begin{verbatim}
+elemOrSpacer : (Element, Bool) -> Element
+elemOrSpacer (elem, hover) =
+    if hover
+    then elem
+    else spacer (widthOf elem) 1
+\end{verbatim}
+
+By replacing hidden elements with spacers, we are able to use the \texttt{flow}
+primitive to position our elements instead of manually doing ``absolute''
+positioning.  A submenu is rendered to the screen if one of three conditions
+is met: the mouse is hovering upon its parent, the mouse is hovering upon it,
+or the mouse is hovering upon any of its descendants.
+
+While this allows recursive submenus to be correctly rendered to the screen, it
+creates a race condition. As the mouse moves from the parent to the its submenu,
+the child is often replaced with a spacer before it can detect that the mouse is
+hovering over it. The results in menus disappearing as the mouse changes which
+element it is hovering upon. To fix this problem, we created the following
+function:
 
 \begin{verbatim}
 extend : Signal Bool -> Signal Bool
 extend b = lift2 (||) b (delay millisecond b)
 \end{verbatim}
 
-Using \texttt{extend} makes a \texttt{Signal Bool} wait a millisecond to
+\texttt{extend} makes a \texttt{Signal Bool} wait a millisecond to
 transition from True to False. By applying this function to every
-hovering Boolean in the Menu structure, we gave the mouse time to move
-from a menu Element to its submenu before that submenu disappeared.
+hovering Boolean in the Menu structure, we give the mouse time to move
+from a menu Element to its submenu before that submenu disappears.
+
+A menu that does not detect mouse clicks is a fairly useless menu. There is no
+primitive in Elm that can simply attach click detection to an element. The
+closest primitive is \texttt{customButtons}. However, the implementation of
+\texttt{customButtons} creates an extra dummy spacer which is rendered on top of
+the element and therefore prevents us from changing the color of the menu
+element when the mouse is hovering over it. To get around this issue, we used a
+combination of \texttt{Mouse.clicks : Signal ()} (which fires an event whenever
+the mouse clicks anywhere on the screen) and the hoverable information to
+determine which element (if any) the mouse was hovering over. 
+
+\begin{verbatim}
+clicksFromHover : Signal Bool -> Signal ()
+clicksFromHover hover =
+    lift (\_ -> ()) <| keepIf id False <| sampleOn Mouse.clicks hover
+\end{verbatim}
+
+For each menu element in the tree, we found its ``path'' (with type
+\texttt{[Int]}) which denotes the list indexes needed to traverse to that
+element. Combining this with the click information gave each element a signal of
+its path that fired whenever the user clicked on that element.  We then combined
+all of those signals into one signal using the \texttt{merge} combinator
+(\texttt{merges : [Signal a] -> Signal a}). The user of the menu could then use
+this \texttt{Signal [Int]} to respond to mouse clicks. This is significantly
+more flexible than returning a \texttt{Signal String} because a path is
+guaranteed to be unique, whereas a menu string might have a duplicate.
 
 Interestingly enough, we were able to implement menus without explicitly
 storing the state of the menu. There are two ways to remember state in
@@ -497,7 +541,7 @@ currently being displayed on the screen, we can derive it based on which
 Element (if any) the mouse is currently hovering over. The elimination
 of state from our code allows it to be much cleaner.
 
-Note that the input to our menu is a \texttt{Tree (Signal String)}, but
+Also note that the input to our menu is a \texttt{Tree (Signal String)}, but
 not a \texttt{Signal (Tree String)}. We are able to map from
 \texttt{Signal Element -\textgreater{} (Signal Element, Signal Bool)},
 but not from \texttt{Element -\textgreater{} (Element, Bool)}.
