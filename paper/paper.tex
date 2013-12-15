@@ -443,43 +443,70 @@ menu updated and the previously selected string was no longer available.
 \section{Implementing Menus}\label{implementing-menus}
 
 Having established the need for \texttt{hoverablesJoin} and implementing it, we
-now turn to stated task of creating menus. A menu can be thought of as an
+now turn to stated task of creating menus.
+\subsection{Menu Representations}
+
+A menu specification, the abstract model of a menu, can be thought of as an
 instance of a tree.
 
 \texttt{data Tree a = Tree a [a]}
 
-Using \texttt{plainText : String -> Element}, we can take a menu specification
-of type \texttt{Tree (Signal String)} and turn into a \texttt{Tree (Signal
-Element}. From there, we can use \texttt{hoverablesJoin} to get the hover
-information of each element and create a structure of type \texttt{Tree (Signal
-Element, Signal Bool)} to represent our menus.  By recursing on the combinator
-\texttt{combine : {[}Signal a{]} -\textgreater{} Signal {[}a{]}}, we are able to
-turn this structure into a \texttt{Signal (Tree (Element, Bool))}. By changing
-our internal structure into a signal of trees instead of a tree of signals, we
-can do the rest of our work with pure functions that operate on the tree, rather
-than on individual signals.  For example, our rendering function
-\texttt{renderMenu : Tree (Element, Bool) -\textgreater{} Element} can simply be
-lifted onto the menu structure.  Similarly to limiting the use of the IO monad
-in Haskell code, it is advantageous to limit the use of signals in Elm code.
+The obvious type for a menu structure that may change is \texttt{Signal (Tree
+String)}. It is easy enough to convert a value of this type to one of type
+\texttt{Signal (Tree Element)}, but we cannot add hover detection to this tree.
+We are able to map from \texttt{Signal Element -\textgreater{} (Signal Element,
+Signal Bool)}, but not (in any useful way) from \texttt{Element -\textgreater{}
+(Element, Bool)}. That is, because the tree is already a signal, we cannot
+create signals inside it (without creating signals of signals). Hover
+information requires a (distinct) signal at each item in the tree.
 
-The first problem in implementing menus is twofold: how to position submenus on the
-screen and how to hide submenus that should not be rendered. To get around these
-problems, we replace submenus not shown on the screen with
-spacers. A spacer is simply a blank rectangle with a specified width and
-height
-(\texttt{spacer : Int -\textgreater{} Int -\textgreater{} Element}). For
-every menu item, we create both the menu Element and a spacer. The
-spacer has the same width as the Element, but a height of 1. We then
-switch between menu and the spacer based on hover information. This
-helped in two ways. First of all, it allowed us to choose between two
-options without creating a signal of signals. Secondly, the spacer
-helped to align the submenu with its parent element.
+Instead of a signal of trees, we therefore use a tree of signals. Each
+individual menu element can contain dynamic information, but the menu structure
+must be static. We can, in practice, get around this restriction by creating a
+tree that is larger than necessary and filling the unused nodes with empty
+string, which our implementation handles appropriately.
+
+Note that we can (and will) convert a tree of signals into a signal of trees, it
+is impossible to go the other way. When converting many signals into one, the
+information on which signal changed is lost. The combinator \texttt{combine :
+    {[}Signal a{]} -\textgreater{} Signal {[}a{]}} does this, and will be used
+    below. It has no inverse because such a function would need to create
+    information: which signal in the list updated? What if the list
+    changes length? What if there is a repeat event, where the list does not
+    change, which signals should propagate repeats? Similar arguments show why
+    the mentally convenient type of \texttt{lift hoverable}, which turned a
+    signal of pairs into a pair of signals, cannot actually be obtained.
+
+\subsection{Menu Rendering}
+
+Therefore, a menu is specified by a value of type \texttt{Tree (Signal String)}.
+We can lift and map the combinator \texttt{plainText : String -> Element} to
+obtain from a menu specification a value of type \texttt{Tree (Signal Element)}.
+From there, we can use \texttt{hoverablesJoin} to get the hover information of
+each Element and create a value of type \texttt{Tree (Signal Element, Signal
+Bool)} to represent our menus. \emph{Now} we convert (by structural recursion)
+our tree of signals to a signal of trees, a value of type \texttt{Signal (Tree
+(Element, Bool))}.  We do the rest of our work with pure functions lifted to
+operate on the tree, for example, our rendering function \texttt{renderMenu :
+    Tree (Element, Bool) -\textgreater{} Element}. Similarly to limiting the use
+    of the IO monad in Haskell code, it is advantageous to limit the use of
+    signals in Elm code.
+
+The first problem in implementing menus is twofold: how to position submenus on
+the screen and how to hide submenus that should not be rendered. To get around
+these problems, we replace submenus not shown on the screen with spacers. A
+spacer is simply a blank rectangle with a specified width and height
+(\texttt{spacer : Int -\textgreater{} Int -\textgreater{} Element}). For every
+menu item, we create both the menu Element and a spacer. The spacer has the same
+width as the Element, but a height of 1. We then switch between menu and the
+spacer based on hover information. This helped in two ways. First of all, it
+allowed us to choose between two options without creating a signal of signals.
+Secondly, the spacer helped to align the submenu with its parent element.
 
 \begin{verbatim}
 elemOrSpacer : (Element, Bool) -> Element
 elemOrSpacer (elem, hover) =
-    if hover
-    then elem
+    if hover then elem
     else spacer (widthOf elem) 1
 \end{verbatim}
 
@@ -541,30 +568,6 @@ currently being displayed on the screen, we can derive it based on which
 Element (if any) the mouse is currently hovering over. The elimination
 of state from our code allows it to be much cleaner.
 
-Also note that the input to our menu is a \texttt{Tree (Signal String)}, but
-not a \texttt{Signal (Tree String)}. We are able to map from
-\texttt{Signal Element -\textgreater{} (Signal Element, Signal Bool)},
-but not from \texttt{Element -\textgreater{} (Element, Bool)}.
-Therefore, if we tried to turn a \texttt{Signal (Tree String)} into a
-\texttt{Signal (Tree (Element, Bool))}, we would need to lift an
-impossible hoverable function of type
-\texttt{Element -\textgreater{} (Element, Bool)} on each element.
-Therefore, each individual menu element can contain dynamic information,
-but the menu structure must be static. We can, in practice, get around
-this restriction by creating a tree that is larger than necessary and
-filling the unused nodes with empty string, which our implementation
-handles appropriately.
-
-A possible solution for that issue would be to write a function of type
-\texttt{Signal (Tree a) -\textgreater{} Tree (Signal a)}. Although the
-\texttt{combine} combinator can turn a list of signals into a signal of
-lists, there isn't an inverse to turn a signal of lists into a list of
-signals. It is impossible to write the function
-\texttt{split : Signal {[}a{]} -\textgreater{} {[}Signal a{]}} because
-the size of the list in the input is dynamic, whereas the size of the
-output list is static. Since the \texttt{Tree} data structure contains
-lists, it is therefore impossible to write a function of type
-\texttt{Signal (Tree a) -\textgreater{} Tree (Signal a)}.
 
 \section{Related Work: TodoFRP}\label{related-work-todofrp}
 
@@ -626,7 +629,8 @@ looks to be an excellent opportunity to refine abstractions and idioms
 for GUIs.
 
 We present these techniques and analysis in the hopes they are of
-service to the Elm and FRP communities. We hope this paper becomes
+service to the Elm and FRP communities. There are a number of obvious paths that
+dead-end, and non-obvious paths that are fruitful. We hope this paper becomes
 useful in Elm's goal of making GUIs simpler to implement and more robust
 to use.
 
