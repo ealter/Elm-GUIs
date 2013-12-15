@@ -117,13 +117,13 @@ We contribute:
   and how it could operate in its presence.
 \end{itemize}
 
-Section 2 introduces Elm, signals, and the prohibition on signals of signals. It
-is targeted to readers familiar with functional programming but not FRP, and may
-be skipped by those already familiar with Elm. Section 3 presents Elm's hover
-detection for DOM elements, why it initially appears inadequate, and how it can
-be extended to meet our needs. Section 4 explains our menu implementation in
-detail. Section 5 analyzes TodoFRP. Section 6 concludes with a notice to the Elm
-community.
+Section 2 introduces Elm, signals, state, and the prohibition on signals of
+signals. It is targeted to readers familiar with functional programming but not
+FRP, and may be skipped by those already comfortable with Elm. Section 3
+presents Elm's hover detection for DOM elements, why it initially appears
+inadequate, and how it can be extended to meet our needs. Section 4 explains our
+menu implementation in detail. Section 5 analyzes TodoFRP. Section 6 concludes
+with a notice to the Elm community.
 
 \section{Elm for Functional
 Programmers}\label{elm-for-functional-programmers}
@@ -290,47 +290,54 @@ from detecting hover information to other GUI functions in the library.
 
 \subsection{A Na\"{i}ve Menu}\label{a-naive-menu}
 
-Elm provides a function to obtain the hover information from an Element.
+Elm's \texttt{Graphics.Input} library provides a function to obtain the hover
+information from an Element.
 
 \texttt{hoverable : Element -\textgreater{} (Element, Signal Bool)}
 
 The returned Element is visually identical to argument, but now detects
-hover information. The signals of Booleans reflects the hover status of
+hover information. The signal of Booleans reflects the hover status of
 the this Element, not the original. This function works well when the
 Element is pure (not a signal). For example, if the top-level menu items are
-known statically and never change, they can be rendered as pure Elements. The
-\texttt{hoverable} function allows us to create Elements for their submenus.
-However, if we try to lift the function, we get
+known statically and never change, they can be rendered as pure Elements with
+this function. We can also create a function, perhaps of type \texttt{Bool ->
+Element}, which we can lift onto the hover data to display the submenu only on
+mouseover. The result is a value of type \texttt{Signal Element}. If we try to
+lift \texttt{hoverable} to accept this value, we get
 
 \texttt{lift hoverable : Signal Element -\textgreater{} Signal (Element, Signal Bool)}
 
 Although it may not appear to be so at first, the result type is a signal of
 signals. It is possible to transform the result into \texttt{Signal Signal
-(Element, Bool)}. A more mentally convenient type, though impossible to obtain,
+(Element, Bool)}. A more mentally convenient type, though impossible to
+obtain,\footnote{We explain why in Section 4.}
 is \texttt{(Signal Element, Signal Signal Bool)}. There does not exist a general
 join function to operate on the \texttt{Signal Signal Bool}.
 
 This is rather unfortunate, as we need to detect hover information on a dynamic
 element for a number of reasons. First, after a menu is extended by hovering
 over its parent, it must remain so as long as the mouse hovers over the menu
-itself. Secondly, if we wish the indicate the currently hovered-over item to the
-user by visually highlighting it, the element must be dynamic. Thirdly, we do
-not wish to require that menu labels be string literals in the source code,
-which would be necessary if we could not use signals of elements. Rather they
-may be retrieved or generated in some other manner, or they may change as the
-user switches among applications. Finally, in order to determine when a user has
-clicked on an Element so that the system may respond, we must know which one is
-being hovered over.\footnote{Once this is known, \texttt{sampleOn Mouse.clicks}
-can be applied to obtain a signal of the hovered-over element updated on each
-click.}
+itself. Without this information, the menu will disappear as soon as we try to
+mouse over it. Secondly, if we wish the indicate the currently hovered-over item
+to the user by visually highlighting it, the element must be dynamic. Thirdly,
+we do not wish to require that menu labels be string literals in the source
+code, which would be necessary if we could not use signals of elements. Rather,
+they may be retrieved or generated in some other manner, or they may change as
+the user switches among applications. Finally, in order to determine when a user
+has clicked on an Element so that the system may respond, we must know which one
+is being hovered over.\footnote{Once this is known, \texttt{sampleOn
+Mouse.clicks} can be applied to obtain a signal of the hovered-over element
+updated on each click.}
 
 \subsection{Dynamic Hovering}
 However, it is possible to implement the following function:
 
 \texttt{hoverableJoin: Signal Element -\textgreater{} (Signal Element, Signal Bool)}
 
-It is done using the more general \texttt{hoverables} (note the plural)
-primitive, of the following type:
+Comparing its type to the mentally convenient type of \texttt{lift hoverables},
+we see it is identical except that the Boolean value is a signal, not a signal
+of signals. This function is implemented using the more general
+\texttt{hoverables} (note the plural) primitive, of the following type:
 
 \begin{verbatim}
 hoverables : a -> { events : Signal a,
@@ -401,11 +408,11 @@ that allows hover targets to change size in response to hover events.
 
 \subsection{Generalized Joins on \texttt{Graphics.Input}}
 
-It is not just hover detection that follows the convention of the two
-names primitives, singular and plural, but most of Elm's wrappers around
-HTML GUI components. They are therefore receptive of the same join
-technique. For labeled buttons, press events are represented by unit or
-a provided identifier:
+It is not just hover detection that follows the paradigm of two primitives
+with singular and plural names. Most of Elm's wrappers around HTML GUI
+components do so as well, and have analogous types. They are therefore receptive
+of the same join technique. For text-labeled buttons, press events are
+represented by unit or a provided identifier:
 
 \begin{verbatim}
  button : String -> (Element, Signal ())
@@ -427,19 +434,20 @@ Drop-down menus do not use the same paradigm as the rest; there is
 only because there seems to be no way to supply a
 \texttt{Signal {[}String{]}}, but because drop-downs are commonly used
 in groups. Multiple menus reporting on one signal would be very
-convenient. If the menus were dynamic, it would be useful to determine
-when an event occurred because the user makes a selection vs.~when the
+convenient. If the menus were dynamic, it would be useful for the API to
+indicate when an event occurred because the user makes a selection vs.~when the
 menu updated and the previously selected string was no longer available.
 
-% These are likely unnecessary and cause page breaks in bad places.
-%
-%\texttt{Graphics.Input} does not currently support radio buttons.
-%
-%As an aside, \texttt{button} is an impure function. One can create two
-%buttons with the same label and place them in different places on the
-%screen (or place one not at all), and the signals of press events will
-%be different. Lifting a joined version onto a signal of strings does not
-%change this fact.
+\texttt{Graphics.Input} does not currently support radio buttons, but one could
+imagine them being added in a way similar to the others. However, it is worth
+observing that the pattern itself leaves something to be desired, namely, that
+the functions are impure. One can apply \texttt{hoverable} to an Element twice,
+place the resulting Elements in in different places on the screen (or place one
+not at all), and the signals of Booleans will be different. This is true,
+analogously, of all the functions of similar type in the library. We know of no
+alternative that has been proposed, and do not have one ourselves. However, we
+point out this deficiency in order to illustrate that the library still has room
+for incremental and perhaps even radical growth.
 
 \section{Implementing Menus}\label{implementing-menus}
 
