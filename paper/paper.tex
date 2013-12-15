@@ -492,16 +492,19 @@ operate on the tree, for example, our rendering function \texttt{renderMenu :
     of the IO monad in Haskell code, it is advantageous to limit the use of
     signals in Elm code.
 
-The first problem in implementing menus is twofold: how to position submenus on
-the screen and how to hide submenus that should not be rendered. To get around
-these problems, we replace submenus not shown on the screen with spacers. A
-spacer is simply a blank rectangle with a specified width and height
-(\texttt{spacer : Int -\textgreater{} Int -\textgreater{} Element}). For every
-menu item, we create both the menu Element and a spacer. The spacer has the same
-width as the Element, but a height of 1. We then switch between menu and the
-spacer based on hover information. This helped in two ways. First of all, it
-allowed us to choose between two options without creating a signal of signals.
-Secondly, the spacer helped to align the submenu with its parent element.
+Because \texttt{hoverablesJoin} was applied throughout the entire tree, it
+contains every Element in every menu, and Booleans that indicate which ones to
+display. Rather than omitting Elements associated with false, we replace these
+hidden submenus with a spacer. A spacer is simply a blank rectangle with a
+specified width and height (\texttt{spacer : Int -\textgreater{} Int
+-\textgreater{} Element}). For our purposes, the spacer has the same width as
+the Element, but a height of 1.\footnote{We were concerned a height of zero
+would cause browser rendering issues.} We then switch between menu and the
+spacer based on hover information. The spacer helped to align the submenu with
+its parent element in a way a \texttt{Maybe Element} would not have done. By
+replacing hidden elements with spacers, we are able to use the \texttt{flow}
+primitive to position our elements instead of manually doing ``absolute''
+positioning.
 
 \begin{verbatim}
 elemOrSpacer : (Element, Bool) -> Element
@@ -510,9 +513,7 @@ elemOrSpacer (elem, hover) =
     else spacer (widthOf elem) 1
 \end{verbatim}
 
-By replacing hidden elements with spacers, we are able to use the \texttt{flow}
-primitive to position our elements instead of manually doing ``absolute''
-positioning.  A submenu is rendered to the screen if one of three conditions
+A submenu is rendered to the screen if one of three conditions
 is met: the mouse is hovering upon its parent, the mouse is hovering upon it,
 or the mouse is hovering upon any of its descendants.
 
@@ -528,46 +529,45 @@ extend : Signal Bool -> Signal Bool
 extend b = lift2 (||) b (delay millisecond b)
 \end{verbatim}
 
-\texttt{extend} makes a \texttt{Signal Bool} wait a millisecond to
-transition from True to False. By applying this function to every
-hovering Boolean in the Menu structure, we give the mouse time to move
-from a menu Element to its submenu before that submenu disappears.
+Applying \texttt{extend} makes a \texttt{Signal Bool} wait a millisecond to
+transition from true to false. Unlike a delay, true-to-false transitions still
+occur immediately. By applying this function to every hovering Boolean in the
+Menu structure, we give the mouse time to move from a menu Element to its
+submenu before that submenu disappears. A millisecond was all that was needed.
 
 A menu that does not detect mouse clicks is a fairly useless menu. There is no
-primitive in Elm that can simply attach click detection to an element. The
-closest primitive is \texttt{customButtons}. However, the implementation of
-\texttt{customButtons} creates an extra dummy spacer which is rendered on top of
-the element and therefore prevents us from changing the color of the menu
-element when the mouse is hovering over it. To get around this issue, we used a
-combination of \texttt{Mouse.clicks : Signal ()} (which fires an event whenever
-the mouse clicks anywhere on the screen) and the hoverable information to
-determine which element (if any) the mouse was hovering over. 
+primitive in Elm that can simply attach click detection to an element. To get
+around this issue, we used a combination of \texttt{Mouse.clicks : Signal ()}
+(which fires an event whenever the mouse clicks anywhere on the screen) and the
+hoverable information to determine which element (if any) the mouse was hovering
+over. (This implementation uses Elm's infix function application operator
+\texttt{|>}, but it can be read as a pipeline.)
 
 \begin{verbatim}
 clicksFromHover : Signal Bool -> Signal ()
 clicksFromHover hover =
-    lift (\_ -> ()) <| keepIf id False <| sampleOn Mouse.clicks hover
+    sampleOn Mouse.clicks hover
+    |> keepIf id False
+    |> lift (\_ -> ())
 \end{verbatim}
 
 For each menu element in the tree, we found its ``path'' (with type
 \texttt{[Int]}) which denotes the list indexes needed to traverse to that
 element. Combining this with the click information gave each element a signal of
-its path that fired whenever the user clicked on that element.  We then combined
+its path that fired whenever the user clicked on that element. We then combined
 all of those signals into one signal using the \texttt{merge} combinator
 (\texttt{merges : [Signal a] -> Signal a}). The user of the menu could then use
 this \texttt{Signal [Int]} to respond to mouse clicks. This is significantly
 more flexible than returning a \texttt{Signal String} because a path is
 guaranteed to be unique, whereas a menu string might have a duplicate.
 
-Interestingly enough, we were able to implement menus without explicitly
-storing the state of the menu. There are two ways to remember state in
-Elm code: \texttt{foldp}, or Elm's implementation of Arrowized FRP known
-as \texttt{Automaton}. However, in our implementation we use the current
-browser DOM state to remember our state. Instead of storing the menu
-currently being displayed on the screen, we can derive it based on which
-Element (if any) the mouse is currently hovering over. The elimination
-of state from our code allows it to be much cleaner.
-
+Interestingly, we were able to implement menus without explicitly storing the
+state of the menu, i.e. without using \texttt{foldp} (or Elm's implementation of
+Arrowized FRP known as \texttt{Automaton}). Rather we use the current browser
+DOM state to remember state. Instead of storing the menu currently being
+displayed on the screen, we can derive it based on which Element (if any) the
+mouse is currently hovering over. The elimination of state from our code allows
+it to be much cleaner.
 
 \section{Related Work: TodoFRP}\label{related-work-todofrp}
 
