@@ -146,7 +146,7 @@ whose value never changes. A more interesting signal is the primitive
 \texttt{Window.dimensions : Signal (Int, Int)}. This signal represents
 the browser window size and updates whenever it is resized. Signals are
 asynchronous in that they update at no set time, just as the window may
-remain the same size idefinitely. Signals update in discrete events, but
+remain the same size indefinitely. Signals update in discrete events, but
 are continuous in the sense that they are always defined.
 
 The function \texttt{lift} allows us to execute a pure function on a
@@ -182,7 +182,7 @@ Graph (DAG). Many signals depend on other signals for their output. For
 example, the \texttt{area} signal depends on \texttt{Window.dimensions}
 signal. Similarly, the \texttt{area2} signal depends on both the values
 of the \texttt{Window.width} and the \texttt{Window.height} signals.
-When an event is fired on a signal, it propogates down the DAG to all
+When an event is fired on a signal, it propagates down the DAG to all
 signals who depend on that signal and the outputs of those signals are
 reevaluated.
 
@@ -371,7 +371,7 @@ hoverablesJoin elem =
 
 Notice that \texttt{pool.hoverable} is partially applied to \texttt{id}
 purely, and then lifted on to the argument. This is possible,
-utlimately, because \texttt{pool.hoverable} is pure.
+ultimately, because \texttt{pool.hoverable} is pure.
 
 Just how novel is this small, but hugely significant change? The
 \href{http://docs.elm-lang.org/library/Graphics/Input.elm\#hoverables}{documentation}
@@ -404,7 +404,7 @@ that allows hover targets to change size in response to hover events.
 It is not just hover detection that follows the convention of the two
 names primitives, singular and plural, but most of Elm's wrappers around
 HTML GUI components. They are therefore receptive of the same join
-technique. For labelled buttons, press events are represented by unit or
+technique. For labeled buttons, press events are represented by unit or
 a provided identifier:
 
 \begin{verbatim}
@@ -427,9 +427,9 @@ Drop-down menus do not use the same paradigm as the rest; there is
 only because there seems to be no way to supply a
 \texttt{Signal {[}String{]}}, but because drop-downs are commonly used
 in groups. Multiple menus reporting on one signal would be very
-convenient. If the menus were dynamic, it may be useful to determine
-when an event occurs because the user makes a selection vs.~when the
-menu updates and the previously selected string is no longer available.
+convenient. If the menus were dynamic, it would be useful to determine
+when an event occurred because the user makes a selection vs.~when the
+menu updated and the previously selected string was no longer available.
 
 % These are likely unnecessary and cause page breaks in bad places.
 %
@@ -472,7 +472,7 @@ helped to align the submenu with its parent element.
 Our second trick fixed a race condition. A submenu was rendered to the
 screen if one of three conditions was met: the mouse was hovering upon
 its parent, the mouse was hovering upon it, or the mouse was hovering
-upon any of its descendents. As the mouse moved from the parent to the
+upon any of its descendants. As the mouse moved from the parent to the
 child, the child was often replaced with a spacer before it could detect
 that the mouse was hovering over it. To fix this problem, we created the
 following function:
@@ -531,7 +531,7 @@ reactivity, a familiar context for Elm veterans, and a few dirty tricks
 of its own.
 
 TodoFRP presents the user with a text field asking, ``what needs to be
-done?''. Entered todo entries become DOM elements, which can be deleted
+done?''. Entered TODO entries become DOM elements, which can be deleted
 with a ``x'' button, also a DOM element. The button is implemented using
 the \texttt{Graphics.Input} function
 
@@ -551,15 +551,16 @@ Even if the Elements have different sizes, the resulting element and
 therefore the hover surface remains fixed in size. Although the same
 join technique can be applied, we find it likely that it would not work
 as intended.
+%Note to Max: I think it does work...
 
-In the case of TodoFRP, these Elements are diferent colors of the ``x''
-and the same for each todo entry. The polymorphic \texttt{a}s are unique
+In the case of TodoFRP, these Elements are different colors of the ``x''
+and the same for each TODO entry. The polymorphic \texttt{a}s are unique
 identifiers (ascending integers) for each entry.
 
-The todo label Elements are dynamic and do not detect hover information.
+The TODO label Elements are dynamic and do not detect hover information.
 The button Elements that do detect hover information are known
 statically. Without \texttt{hoverablesJoin}, it would be impossible to
-dismiss a todo by clicking on its text label.
+dismiss a TODO by clicking on its text label.
 
 \section{Conclusion: To the Elm
 Community}\label{conclusion-to-the-elm-community}
@@ -591,4 +592,6 @@ his guidance through functional programming, and our paper reviewers,
 \ldots{} .
 
 \subsection{References}\label{references}
+%Make sure to put a link to our GitHub
+
 \end{document}
