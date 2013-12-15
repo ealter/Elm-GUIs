@@ -117,13 +117,16 @@ We contribute:
   and how it could operate in its presence.
 \end{itemize}
 
-Section 2 introduces Elm, signals, state, and the prohibition on signals of
-signals. It is targeted to readers familiar with functional programming but not
-FRP, and may be skipped by those already comfortable with Elm. Section 3
-presents Elm's hover detection for DOM elements, why it initially appears
-inadequate, and how it can be extended to meet our needs. Section 4 explains our
-menu implementation in detail. Section 5 analyzes TodoFRP. Section 6 concludes
-with a notice to the Elm community.
+Section \ref{elm-for-functional-programmers} introduces Elm, signals, state, and
+the prohibition on signals of signals. It is targeted to readers familiar with
+functional programming but not FRP, and may be skipped by those already
+comfortable with Elm.
+Section \ref{detecting-hover-information} presents Elm's hover detection for DOM
+elements, why it initially appears inadequate, and how it can be extended to
+meet our needs.
+Section \ref{implementing-menus} explains our menu implementation in detail.
+Section \ref{related-work-todofrp} analyzes TodoFRP.
+Section \ref{conclusion} concludes with a notice to the Elm community.
 
 \section{Elm for Functional
 Programmers}\label{elm-for-functional-programmers}
@@ -310,7 +313,7 @@ lift \texttt{hoverable} to accept this value, we get
 Although it may not appear to be so at first, the result type is a signal of
 signals. It is possible to transform the result into \texttt{Signal Signal
 (Element, Bool)}. A more mentally convenient type, though impossible to
-obtain,\footnote{We explain why in Section 4.}
+obtain,\footnote{We explain why in Section \ref{implementing-menus}.}
 is \texttt{(Signal Element, Signal Signal Bool)}. There does not exist a general
 join function to operate on the \texttt{Signal Signal Bool}.
 
@@ -571,7 +574,7 @@ statically. Without \texttt{hoverablesJoin}, it would be impossible to
 dismiss a TODO by clicking on its text label.
 
 \section{Conclusion: To the Elm
-Community}\label{conclusion-to-the-elm-community}
+Community}\label{conclusion}
 
 It's true that we've used the \texttt{hoverables} function in a way that
 it was (probably) never meant to be used, and there are some caveats
