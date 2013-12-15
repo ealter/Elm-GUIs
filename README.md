@@ -18,6 +18,7 @@ module.
    and `treeAtPath` functions.
 * `maybeBlank.elm` tests how the code handles blank strings. This one
   demonstrates a bug in the hoverable detection of elm.
+* `clicks.elm` demonstrates detecting clicks.
 
 The path to the main menu is `/menus/main.elm`
 
