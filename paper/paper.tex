@@ -58,12 +58,12 @@ application.
 \section{Introduction}\label{introduction}
 
 Elm was introduced in March 2012 in Evan Czaplicki's senior thesis,
-\emph{Concurrent FRP for GUIs}. He and his adviser, Stephen Chong,
-published \emph{Asynchronous FRP for GUIs} at PLDI 2013. Both papers are
-comprehensive overviews of Elm, and additionally provide excellent
-literature reviews of previous FRP GUI endeavors, of which there are
-several. Elm compiles down to JavaScript to run in the browser, making
-it remarkably portable.
+\emph{Concurrent FRP for GUIs}. \cite{elm-thesis} He and his adviser, Stephen
+Chong, published \emph{Asynchronous FRP for GUIs} at PLDI
+2013. \cite{CzaplickiC13} Both papers are comprehensive overviews of Elm, and
+additionally provide excellent literature reviews of previous FRP GUI endeavors,
+of which there are several.  Elm compiles down to JavaScript to run in the
+browser, making it remarkably portable.
 
 We chose menus as an example GUI to implement in Elm. The particular
 design places the top-level menu at the top of the screen, similar to
@@ -78,17 +78,16 @@ more difficult task of managing time-varying hover information about
 time-varying areas.
 
 There are two features of Elm we are deliberately avoiding. First is the
-extensive raster drawing library, \texttt{Graphics.Collage}. Dynamic
-hover detection is not problematic when using this library because it
-can be done purely through manual collision detection. However, if we
-used this library, our GUI would be a single raster animation and not a
-DOM tree. Secondly, the \texttt{Graphics.Input} library contains
-wrappers around HTML checkboxes and dropdowns. We consider creating GUIs
-with these to be uninteresting and wanted to pursue something more
-general. This led to the choice of an interface typically found in the
+extensive raster drawing library, \texttt{Graphics.Collage}. Dynamic hover
+detection is not problematic when using this library because it can be done
+purely through manual collision detection. However, if we used this library, our
+GUI would be a single raster animation and not a DOM tree. Secondly, the
+\texttt{Graphics.Input} library contains wrappers around HTML checkboxes and
+dropdowns. We rejected creating GUIs with these and wanted to pursue something
+more general. This led to the choice of an interface typically found in the
 operating system rather than the browser. We do refer to the native GUI
-constructs to show how the technique we develop for hovering
-generalizes, as the API for buttons and hover detection is very similar.
+constructs to show how the technique we develop for hovering generalizes, as the
+API for buttons and hover detection is very similar.
 
 It is difficult for the authors to assess what level of knowledge should
 be assumed on the part of the reader. Firstly, readers will range from
@@ -222,7 +221,7 @@ The type system rules out programs that use signals of signals, for the
 following reason. Intuitively, if we have signals of signals, then after
 a program has executed for, say 10 minutes, we might create a signal
 that (through the use of \texttt{foldp}) depends on the history of an
-input signal, say \texttt{Window.width}.
+input signal, say \texttt{Window.width}. \cite{CzaplickiC13}
 \end{quote}
 
 That is, we can define a clock that measures the amount of time since
@@ -265,7 +264,7 @@ using the current and new values of \texttt{Window.width} (i.e.,
 ignoring the history). But this would allow the possibility of having
 two identically defined signals that have different values, based on
 when they were created. We avoid these issues by ruling out signals of
-signals.
+signals. \cite{CzaplickiC13}
 \end{quote}
 
 That is, in order to have both state and signals of signals, the program
@@ -558,11 +557,12 @@ hover, and one on click. The result is an \texttt{Element}, not a
 \texttt{Signal Element}, that nevertheless changes among those three in
 response to the mouse. This is possible because the result Element's
 dimensions are taken to be the maximum of the three inputs' dimensions.
-Even if the Elements have different sizes, the resulting element and
+Even if the Elements have different sizes, the resulting Element and
 therefore the hover surface remains fixed in size. Although the same
 join technique can be applied, we find it likely that it would not work
 as intended.
 %Note to Max: I think it does work...
+%We should try it out then.
 
 In the case of TodoFRP, these Elements are different colors of the ``x''
 and the same for each TODO entry. The polymorphic \texttt{a}s are unique
@@ -595,14 +595,13 @@ service to the Elm and FRP communities. We hope this paper becomes
 useful in Elm's goal of making GUIs simpler to implement and more robust
 to use.
 
-\subsection{Acknowledgments}\label{acknowledgments}
-
+\section*{Acknowledgments}
 We would like to thank Evan Czaplicki and Stephen Chong for creating
 Elm, and the Elm community for growing it. We thank Norman Ramsey for
 his guidance through functional programming, and our paper reviewers,
 \ldots{} .
 
-\subsection{References}\label{references}
 %Make sure to put a link to our GitHub
-
+\bibliographystyle{alpha}
+\bibliography{refs.bib}
 \end{document}
