@@ -57,37 +57,35 @@ application.
 
 \section{Introduction}\label{introduction}
 
-Elm was introduced in March 2012 in Evan Czaplicki's senior thesis,
-\emph{Concurrent FRP for GUIs}. \cite{elm-thesis} He and his adviser, Stephen
-Chong, published \emph{Asynchronous FRP for GUIs} at PLDI
-2013. \cite{CzaplickiC13} Both papers are comprehensive overviews of Elm, and
-additionally provide excellent literature reviews of previous FRP GUI endeavors,
-of which there are several.  Elm compiles down to JavaScript to run in the
-browser, making it remarkably portable.
+Elm was introduced in March 2012 in Evan Czaplicki's senior thesis.
+\cite{elm-thesis} He and his adviser, Stephen Chong, published a formal
+description of Elm's semantics at PLDI 2013. \cite{CzaplickiC13} Both papers are
+comprehensive overviews of Elm, and additionally provide excellent literature
+reviews of previous FRP GUI endeavors, of which there are several. Elm compiles
+down to JavaScript to run in the browser, making it remarkably portable.
 
-We chose menus as an example GUI to implement in Elm. The particular
-design places the top-level menu at the top of the screen, similar to
-Mac OS X and many Linux distributions, with selections coming down from
-the top. Menus extend when the top-level item is hovered upon, and
-remain extended while the mouse hovers over any item in the menu.
-Therefore it is necessary to know hover information about each menu
-item. This time-varying information is also used to detect selections
-upon click and highlight the moused-over item. It is simple to do this
-when the hover-detecting area is constant. Our paper describes the much
-more difficult task of managing time-varying hover information about
-time-varying areas.
+Elm was designed to make implementing GUIs easier, so we decided to try to
+implement menus as an example GUI. The particular design places the top-level
+menu at the top of the screen, similar to Mac OS X and many Linux distributions,
+with selections coming down from the top. Menus extend when the top-level item
+is hovered upon, and remain extended while the mouse hovers over any item in the
+menu. Therefore it is necessary to know hover information about each menu item.
+This time-varying information is also used to detect selections upon click and
+highlight the moused-over item. It is simple to do this when the hover-detecting
+area is constant. This paper describes the much more difficult task of managing
+time-varying hover information about time-varying areas.
 
 There are two features of Elm we are deliberately avoiding. First is the
 extensive raster drawing library, \texttt{Graphics.Collage}. Dynamic hover
 detection is not problematic when using this library because it can be done
-purely through manual collision detection. However, if we used this library, our
+purely using geometric collision detection. However, if we used this library, our
 GUI would be a single raster animation and not a DOM tree. Secondly, the
 \texttt{Graphics.Input} library contains wrappers around HTML checkboxes and
 dropdowns. We rejected creating GUIs with these and wanted to pursue something
 more general. This led to the choice of an interface typically found in the
 operating system rather than the browser. We do refer to the native GUI
-constructs to show how the technique we develop for hovering generalizes, as the
-API for buttons and hover detection is very similar.
+constructs to show how the technique we develop for hovering generalizes to
+them, as their API is similar to the one for hover detection.
 
 It is difficult for the authors to assess what level of knowledge should
 be assumed on the part of the reader. Firstly, readers will range from
@@ -109,7 +107,7 @@ We contribute:
   other functions in \texttt{Graphics.Input}.
 \item
   An implementation of desktop-style menu in Elm, which incorporates
-  several noteworthy ``tricks'' as well as general style practices.
+  several noteworthy ``tricks'' as well as general style best practices.
 \item
   An analysis of TodoFRP, the current state-of-the-art in dynamic Elm
   GUIs. We demonstrate how it operates in the absence of our technique,
@@ -119,13 +117,12 @@ We contribute:
 Section \ref{elm-for-functional-programmers} introduces Elm, signals, state, and
 the prohibition on signals of signals. It is targeted to readers familiar with
 functional programming but not FRP, and may be skipped by those already
-comfortable with Elm.
-Section \ref{detecting-hover-information} presents Elm's hover detection for DOM
-elements, why it initially appears inadequate, and how it can be extended to
-meet our needs.
-Section \ref{implementing-menus} explains our menu implementation in detail.
-Section \ref{related-work-todofrp} analyzes TodoFRP.
-Section \ref{conclusion} concludes with a notice to the Elm community.
+comfortable with Elm.  Section \ref{detecting-hover-information} presents Elm's
+hover detection API for DOM elements, why it initially appears inadequate, and
+how it can be extended to meet our needs. Section \ref{implementing-menus}
+explains our menu implementation in detail. Section \ref{related-work-todofrp}
+analyzes TodoFRP. Section \ref{conclusion} concludes with a notice to the Elm
+community.
 
 \section{Elm for Functional
 Programmers}\label{elm-for-functional-programmers}
@@ -173,7 +170,7 @@ a pair and individually, we can also write
 \texttt{area2 = lift2 (*) Window.width Window.height}.
 
 We can print the current area to the screen with \texttt{main = lift asText
-area}. The primitive \texttt{asText : a -\textgreater{} Element} renders almost
+area}. The primitive \texttt{asText : a -> Element} renders almost
 anything into an Element, which represents a DOM element.\footnote{Those
     following along in an Elm compiler, such as the one available at
     \texttt{elm-lang.org/try}, should add \texttt{import Window} to the top of
@@ -186,7 +183,7 @@ signal. Similarly, the \texttt{area2} signal depends on both the values
 of the \texttt{Window.width} and the \texttt{Window.height} signals.
 When an event is fired on a signal, it propagates down the DAG to all
 signals who depend on that signal and the outputs of those signals are
-reevaluated.
+reevaluated, recursively.
 
 \subsection{Remembering State}\label{remembering-state}
 
@@ -213,15 +210,13 @@ exception) and space can be saved by remembering only the accumulator.
 \subsection{No Signals of Signals}\label{no-signals-of-signals}
 
 The ability to create a signal dependent on past state has a potentially
-disastrous implication for space performance. Czaplicki and Chong
-explain the preventive measure and the problem:
+disastrous implication for space performance. Czaplicki and Chong explain:
 
 \begin{quote}
-The type system rules out programs that use signals of signals, for the
-following reason. Intuitively, if we have signals of signals, then after
-a program has executed for, say 10 minutes, we might create a signal
-that (through the use of \texttt{foldp}) depends on the history of an
-input signal, say \texttt{Window.width}. \cite{CzaplickiC13}
+Intuitively, if we have signals of signals, then after a program has executed
+for, say 10 minutes, we might create a signal that (through the use of
+\texttt{foldp}) depends on the history of an input signal, say
+\texttt{Window.width}. \cite{CzaplickiC13}
 \end{quote}
 
 That is, we can define a clock that measures the amount of time since
@@ -245,7 +240,7 @@ switcher t = if t < 10*minute
              else foldp max 0 Window.width
 \end{verbatim}
 
-We could, were the type system not principled on disallowing it, create
+We could, in theory, create
 
 \begin{verbatim}
 switched : Signal (Signal Int)
@@ -267,11 +262,12 @@ when they were created. We avoid these issues by ruling out signals of
 signals. \cite{CzaplickiC13}
 \end{quote}
 
-That is, in order to have both state and signals of signals, the program
-must either remember indefinitely every event to ever occur, so that a
-newly created signal can use them, or tolerate signals that vary based
-only on when they were created, losing referential transparency. Elm's
-creators declined either option and disallowed signals of signals.
+Indeed, Elm's type system is principled on disallowing signals of signals.
+Programs may not create in the future signals that depend on the past. Were they
+allowed to, the system must either remember indefinitely every event to ever
+occur on any signal, so that a newly created signal can use them, or tolerate
+signals that vary based only on when they were created, losing referential
+transparency.
 
 To a reader familiar with Haskell, this means signals are functors (and
 in fact applicative functors) but not monads, as monads support the
@@ -295,9 +291,9 @@ from detecting hover information to other GUI functions in the library.
 Elm's \texttt{Graphics.Input} library provides a function to obtain the hover
 information from an Element.
 
-\texttt{hoverable : Element -\textgreater{} (Element, Signal Bool)}
+\texttt{hoverable : Element -> (Element, Signal Bool)}
 
-The returned Element is visually identical to argument, but now detects
+The returned Element is visually identical to the argument, but now detects
 hover information. The signal of Booleans reflects the hover status of
 the this Element, not the original. This function works well when the
 Element is pure (not a signal). For example, if the top-level menu items are
@@ -307,12 +303,12 @@ Element}, which we can lift onto the hover data to display the submenu only on
 mouseover. The result is a value of type \texttt{Signal Element}. If we try to
 lift \texttt{hoverable} to accept this value, we get
 
-\texttt{lift hoverable : Signal Element -\textgreater{} Signal (Element, Signal Bool)}
+\texttt{lift hoverable : Signal Element -> Signal (Element, Signal Bool)}
 
 Although it may not appear to be so at first, the result type is a signal of
 signals. It is possible to transform the result into \texttt{Signal Signal
 (Element, Bool)}. A more mentally convenient type, though impossible to
-obtain,\footnote{We explain why in Section \ref{implementing-menus}.}
+obtain,\footnote{We explain why in Section \ref{menu-representations}.}
 is \texttt{(Signal Element, Signal Signal Bool)}. There does not exist a general
 join function to operate on the \texttt{Signal Signal Bool}.
 
@@ -327,19 +323,19 @@ code, which would be necessary if we could not use signals of elements. Rather,
 they may be retrieved or generated in some other manner, or they may change as
 the user switches among applications. Finally, in order to determine when a user
 has clicked on an Element so that the system may respond, we must know which one
-is being hovered over.\footnote{Once this is known, \texttt{sampleOn
-Mouse.clicks} can be applied to obtain a signal of the hovered-over element
-updated on each click.}
+is being hovered over.
 
 \subsection{Dynamic Hovering}
 However, it is possible to implement the following function:
 
-\texttt{hoverableJoin: Signal Element -\textgreater{} (Signal Element, Signal Bool)}
+\texttt{hoverableJoin: Signal Element -> (Signal Element, Signal Bool)}
 
-Comparing its type to the mentally convenient type of \texttt{lift hoverables},
+Comparing its type to the mentally convenient type of \texttt{lift hoverable},
 we see it is identical except that the Boolean value is a signal, not a signal
-of signals. This function is implemented using the more general
-\texttt{hoverables} (note the plural) primitive, of the following type:
+of signals. That is, it has been joined.\footnote{While the name
+    \texttt{hoverableJoin} reinforces this fact for our paper, we do not
+recommend it for a user-facing API.} It is implemented using the more general
+primitive \texttt{hoverables} (note the plural), of the following type:
 
 \begin{verbatim}
 hoverables : a -> { events : Signal a,
@@ -349,10 +345,10 @@ hoverables : a -> { events : Signal a,
 The polymorphic \texttt{a} type can serve as an identifier. The first
 value supplies the default value of \texttt{events} (signals must always
 be defined and so a default value is required). The returned record
-includes the \texttt{events} signals and the \texttt{hoverable}
+includes the \texttt{events} signal and the \texttt{hoverable}
 function, which in general may be applied multiple times so that
-multiple elements report on \texttt{events}. The
-\texttt{(Bool -\textgreater{} a)} is used to identify which Element
+multiple elements report their hover information on \texttt{events}. The
+\texttt{(Bool -> a)} is used to identify which Element
 experienced the event; a common use is \texttt{a = (Int, Bool)} where
 the integer identifies the Element and the Bool is the event.
 Additionally, \texttt{hoverables} is used to implement
@@ -362,7 +358,7 @@ Additionally, \texttt{hoverables} is used to implement
 hoverable : Element -> (Element, Signal Bool)
 hoverable elem =
     let pool = hoverables False
-        in  (pool.hoverable id elem, pool.events)
+    in  (pool.hoverable id elem, pool.events)
 \end{verbatim}
 
 It ignores the polymorphism (\texttt{a = Bool}) and instead create a
@@ -372,8 +368,8 @@ a function that acts on \texttt{Signal Element} instead of
 \texttt{Element}:
 
 \begin{verbatim}
-hoverablesJoin : Signal Element -> (Signal Element, Signal Bool)
-hoverablesJoin elem =
+hoverableJoin : Signal Element -> (Signal Element, Signal Bool)
+hoverableJoin elem =
     let pool = hoverables False
     in (lift (pool.hoverable id) elem, pool.events)
 \end{verbatim}
@@ -395,10 +391,9 @@ list post} that introduced these functions, Czaplicki said that
 build any kind of nicer abstraction on top of it.'' We have done just
 that.
 
-When a element changes, \texttt{hoverablesJoin} attaches the same
-hovering signal to the new element. If we were to display both the old
-and the new elements on the screen, hovering over either would trigger
-the signal.
+When a element changes, \texttt{hoverableJoin} attaches the new element to the
+same hovering signal. If we were to display both the old and the new elements on
+the screen, hovering over either would trigger the signal.
 
 More dangerously, it becomes easy to create an infinite loop. Suppose an
 Element shrinks on hover. Suppose the cursor hovers on the Element,
@@ -428,23 +423,23 @@ this approach works, but the types allow it.) The same goes for text
 fields, which can be given text based on what else is known in the
 program, and checkboxes. As currently implemented, checkboxes have
 Boolean state so dynamic behavior has limited use. However, we can
-imagine the ability to disable (``gray-out'') a checkbox in response to
-other choices in a form.
+imagine the ability to dynamically disable (``gray-out'') a checkbox in response
+to other choices in a form.
 
 Drop-down menus do not use the same paradigm as the rest; there is
 \texttt{dropDown} but no \texttt{dropDowns}. This is unfortunate not
 only because there seems to be no way to supply a
-\texttt{Signal {[}String{]}}, but because drop-downs are commonly used
+\texttt{Signal {[}String{]}}, but also because drop-downs are commonly used
 in groups. Multiple menus reporting on one signal would be very
-convenient. If the menus were dynamic, it would be useful for the API to
-indicate when an event occurred because the user makes a selection vs.~when the
+convenient. If the menu options were dynamic, it would be useful for the API to
+indicate when an event occurred because the user made a selection vs.~when the
 menu updated and the previously selected string was no longer available.
 
 \section{Implementing Menus}\label{implementing-menus}
 
-Having established the need for \texttt{hoverablesJoin} and implementing it, we
+Having established the need for \texttt{hoverableJoin} and implementing it, we
 now turn to stated task of creating menus.
-\subsection{Menu Representations}
+\subsection{Menu Representations}\label{menu-representations}
 
 A menu specification, the abstract model of a menu, can be thought of as an
 instance of a tree.
@@ -454,8 +449,8 @@ instance of a tree.
 The obvious type for a menu structure that may change is \texttt{Signal (Tree
 String)}. It is easy enough to convert a value of this type to one of type
 \texttt{Signal (Tree Element)}, but we cannot add hover detection to this tree.
-We are able to map from \texttt{Signal Element -\textgreater{} (Signal Element,
-Signal Bool)}, but not (in any useful way) from \texttt{Element -\textgreater{}
+We are able to map from \texttt{Signal Element -> (Signal Element,
+Signal Bool)}, but not (in any useful way) from \texttt{Element ->
 (Element, Bool)}. That is, because the tree is already a signal, we cannot
 create signals inside it (without creating signals of signals). Hover
 information requires a (distinct) signal at each item in the tree.
@@ -466,41 +461,41 @@ must be static. We can, in practice, get around this restriction by creating a
 tree that is larger than necessary and filling the unused nodes with empty
 string, which our implementation handles appropriately.
 
-Note that we can (and will) convert a tree of signals into a signal of trees, it
-is impossible to go the other way. When converting many signals into one, the
-information on which signal changed is lost. The combinator \texttt{combine :
-    {[}Signal a{]} -\textgreater{} Signal {[}a{]}} does this, and will be used
-    below. It has no inverse because such a function would need to create
-    information: which signal in the list updated? What if the list
-    changes length? What if there is a repeat event, where the list does not
-    change, which signals should propagate repeats? Similar arguments show why
-    the mentally convenient type of \texttt{lift hoverable}, which turned a
-    signal of pairs into a pair of signals, cannot actually be obtained.
+Note that we can (and will) convert a tree of signals into a signal of trees,
+but it is impossible to go the other way. When converting many signals into one,
+the information on which signal changed is lost. The combinator \texttt{combine
+    : {[}Signal a{]} -> Signal {[}a{]}} does this, and will be used below. It
+    has no inverse because such a function would need to create information:
+    which signal in the list updated? What if the list changes length? What if
+    there is a repeat event, where the list does not change, which signals
+    should propagate repeats? Similar arguments show why the mentally convenient
+    type of \texttt{lift hoverable}, which turned a signal of pairs into a pair
+    of signals, cannot actually be obtained.
 
 \subsection{Menu Rendering}
 
 Therefore, a menu is specified by a value of type \texttt{Tree (Signal String)}.
 We can lift and map the combinator \texttt{plainText : String -> Element} to
 obtain from a menu specification a value of type \texttt{Tree (Signal Element)}.
-From there, we can use \texttt{hoverablesJoin} to get the hover information of
+From there, we can use \texttt{hoverableJoin} to get the hover information of
 each Element and create a value of type \texttt{Tree (Signal Element, Signal
 Bool)} to represent our menus. \emph{Now} we convert (by structural recursion)
 our tree of signals to a signal of trees, a value of type \texttt{Signal (Tree
-(Element, Bool))}.  We do the rest of our work with pure functions lifted to
+(Element, Bool))}. We do the rest of our work with pure functions lifted to
 operate on the tree, for example, our rendering function \texttt{renderMenu :
-    Tree (Element, Bool) -\textgreater{} Element}. Similarly to limiting the use
+    Tree (Element, Bool) -> Element}. Similarly to limiting the use
     of the IO monad in Haskell code, it is advantageous to limit the use of
     signals in Elm code.
 
-Because \texttt{hoverablesJoin} was applied throughout the entire tree, it
+Because \texttt{hoverableJoin} was applied throughout the entire tree, it
 contains every Element in every menu, and Booleans that indicate which ones to
 display. Rather than omitting Elements associated with false, we replace these
 hidden submenus with a spacer. A spacer is simply a blank rectangle with a
-specified width and height (\texttt{spacer : Int -\textgreater{} Int
--\textgreater{} Element}). For our purposes, the spacer has the same width as
+specified width and height (\texttt{spacer : Int -> Int
+-> Element}). For our purposes, the spacer has the same width as
 the Element, but a height of 1.\footnote{We were concerned a height of zero
 would cause browser rendering issues.} We then switch between menu and the
-spacer based on hover information. The spacer helped to align the submenu with
+spacer based on hover information. The spacer helps to align the submenu with
 its parent element in a way a \texttt{Maybe Element} would not have done. By
 replacing hidden elements with spacers, we are able to use the \texttt{flow}
 primitive to position our elements instead of manually doing ``absolute''
@@ -513,27 +508,26 @@ elemOrSpacer (elem, hover) =
     else spacer (widthOf elem) 1
 \end{verbatim}
 
-A submenu is rendered to the screen if one of three conditions
-is met: the mouse is hovering upon its parent, the mouse is hovering upon it,
-or the mouse is hovering upon any of its descendants.
-
-While this allows recursive submenus to be correctly rendered to the screen, it
-creates a race condition. As the mouse moves from the parent to the its submenu,
-the child is often replaced with a spacer before it can detect that the mouse is
-hovering over it. The results in menus disappearing as the mouse changes which
-element it is hovering upon. To fix this problem, we created the following
-function:
+There was another complication involving the hover information. A submenu is
+rendered to the screen if one of three conditions is met: the mouse is hovering
+upon its parent, the mouse is hovering upon it, or the mouse is hovering upon
+any of its descendants. While this definition allows recursive submenus to be
+correctly rendered to the screen, it creates a race condition. As the mouse
+moves from the parent to the its submenu, the child is often replaced with a
+spacer before it can detect that the mouse is hovering over it. The results in
+menus disappearing as the mouse changes which element it is hovering upon. To
+fix this problem, we created the following function:
 
 \begin{verbatim}
-extend : Signal Bool -> Signal Bool
-extend b = lift2 (||) b (delay millisecond b)
+delayFalse : Signal Bool -> Signal Bool
+delayFalse b = lift2 (||) b (delay millisecond b)
 \end{verbatim}
 
-Applying \texttt{extend} makes a \texttt{Signal Bool} wait a millisecond to
-transition from true to false. Unlike a delay, false-to-true transitions still
-occur immediately. By applying this function to every hovering Boolean in the
-Menu structure, we give the mouse time to move from a menu Element to its
-submenu before that submenu disappears. A millisecond was all that was needed.
+Applying \texttt{delayFalse} makes a \texttt{Signal Bool} wait a millisecond to
+transition from true to false. Unlike a typical delay, false-to-true transitions
+still occur immediately. By applying this function to every hovering Boolean in
+the menu structure, we give the mouse time to move from a menu Element to its
+submenu before that submenu disappears.
 
 A menu that does not detect mouse clicks is a fairly useless menu. There is no
 primitive in Elm that can simply attach click detection to an element. To get
@@ -541,7 +535,7 @@ around this issue, we used a combination of \texttt{Mouse.clicks : Signal ()}
 (which fires an event whenever the mouse clicks anywhere on the screen) and the
 hoverable information to determine which element (if any) the mouse was hovering
 over. (This implementation uses Elm's infix function application operator
-\texttt{<|}, which is the same as the Haskell operator \texttt{\$}.
+\texttt{<|}, which is the same as the Haskell operator \texttt{\$}).
 
 \begin{verbatim}
 clicksFromHover : Signal Bool -> Signal ()
@@ -555,7 +549,7 @@ For each menu element in the tree, we found its ``path'' (with type
 \texttt{[Int]}) which denotes the list indexes needed to traverse to that
 element. Combining this with the click information gave each element a signal of
 its path that fired whenever the user clicked on that element. We then combined
-all of those signals into one signal using the \texttt{merge} combinator
+all of those signals into one signal using the \texttt{merges} combinator
 (\texttt{merges : [Signal a] -> Signal a}). The user of the menu could then use
 this \texttt{Signal [Int]} to respond to mouse clicks. This is significantly
 more flexible than returning a \texttt{Signal String} because a path is
@@ -572,14 +566,14 @@ it to be much cleaner.
 \section{Related Work: TodoFRP}\label{related-work-todofrp}
 
 We examine \href{https://github.com/evancz/TodoFRP}{TodoFRP}, a simple
-Elm web app created by Czapliki, to both pinpoint the problem and show
-its universality. TodoFRP is the current state-of-the-art in highly
+Elm web app created by Czapliki, to provide another example of the problem
+solved by \texttt{hoverableJoin}. TodoFRP is the current state-of-the-art in highly
 reactive Elm GUIs. It provides examples of different levels of
 reactivity, a familiar context for Elm veterans, and a few dirty tricks
 of its own.
 
 TodoFRP presents the user with a text field asking, ``what needs to be
-done?''. Entered TODO entries become DOM elements, which can be deleted
+done?''. Entered TODO items become DOM elements, which can be deleted
 with a ``x'' button, also a DOM element. The button is implemented using
 the \texttt{Graphics.Input} function
 
@@ -599,16 +593,14 @@ Even if the Elements have different sizes, the resulting Element and
 therefore the hover surface remains fixed in size. Although the same
 join technique can be applied, we find it likely that it would not work
 as intended.
-%Note to Max: I think it does work...
-%We should try it out then.
 
-In the case of TodoFRP, these Elements are different colors of the ``x''
+In the case of TodoFRP, these three Elements are different colors of the ``x''
 and the same for each TODO entry. The polymorphic \texttt{a}s are unique
 identifiers (ascending integers) for each entry.
 
 The TODO label Elements are dynamic and do not detect hover information.
 The button Elements that do detect hover information are known
-statically. Without \texttt{hoverablesJoin}, it would be impossible to
+statically. With \texttt{hoverableJoin}, it becomes possible to
 dismiss a TODO by clicking on its text label.
 
 \section{Conclusion: To the Elm
@@ -637,8 +629,8 @@ to use.
 \section*{Acknowledgments}
 We would like to thank Evan Czaplicki and Stephen Chong for creating
 Elm, and the Elm community for growing it. We thank Norman Ramsey for
-his guidance through functional programming, and our paper reviewers,
-\ldots{} .
+his guidance through functional programming, and our paper reviewer, Caroline
+Marcks.
 
 %Make sure to put a link to our GitHub
 \bibliographystyle{alpha}
