@@ -541,14 +541,14 @@ around this issue, we used a combination of \texttt{Mouse.clicks : Signal ()}
 (which fires an event whenever the mouse clicks anywhere on the screen) and the
 hoverable information to determine which element (if any) the mouse was hovering
 over. (This implementation uses Elm's infix function application operator
-\texttt{|>}, but it can be read as a pipeline.)
+\texttt{<|}, which is the same as the Haskell operator \texttt{\$}.
 
 \begin{verbatim}
 clicksFromHover : Signal Bool -> Signal ()
 clicksFromHover hover =
-    sampleOn Mouse.clicks hover
-    |> keepIf id False
-    |> lift (\_ -> ())
+    lift (\_ -> ())
+    <| keepIf id False
+    <| sampleOn Mouse.clicks hover
 \end{verbatim}
 
 For each menu element in the tree, we found its ``path'' (with type
