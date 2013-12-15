@@ -530,7 +530,7 @@ extend b = lift2 (||) b (delay millisecond b)
 \end{verbatim}
 
 Applying \texttt{extend} makes a \texttt{Signal Bool} wait a millisecond to
-transition from true to false. Unlike a delay, true-to-false transitions still
+transition from true to false. Unlike a delay, false-to-true transitions still
 occur immediately. By applying this function to every hovering Boolean in the
 Menu structure, we give the mouse time to move from a menu Element to its
 submenu before that submenu disappears. A millisecond was all that was needed.
