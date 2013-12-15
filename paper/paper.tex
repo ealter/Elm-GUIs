@@ -170,9 +170,9 @@ a pair and individually, we can also write
 \texttt{area2 = lift2 (*) Window.width Window.height}.
 
 We can print the current area to the screen with \texttt{main = lift asText
-area}. The primitive \texttt{asText : a -> Element} renders almost
-anything into an Element, which represents a DOM element.\footnote{Those
-    following along in an Elm compiler, such as the one available at
+area}. The primitive \texttt{asText : a -> Element} renders almost anything into
+an \texttt{Element}, which represents a DOM element.\footnote{Those following
+    along in an Elm compiler, such as the one available at
     \texttt{elm-lang.org/try}, should add \texttt{import Window} to the top of
 the file.}
 
@@ -289,15 +289,15 @@ from detecting hover information to other GUI functions in the library.
 \subsection{A Na\"{i}ve Menu}\label{a-naive-menu}
 
 Elm's \texttt{Graphics.Input} library provides a function to obtain the hover
-information from an Element.
+information from an element.
 
 \texttt{hoverable : Element -> (Element, Signal Bool)}
 
-The returned Element is visually identical to the argument, but now detects
-hover information. The signal of Booleans reflects the hover status of
-the this Element, not the original. This function works well when the
-Element is pure (not a signal). For example, if the top-level menu items are
-known statically and never change, they can be rendered as pure Elements with
+The returned element is visually identical to the argument, but now detects
+hover information. The signal of booleans reflects the hover status of
+the this element, not the original. This function works well when the
+element is pure (not a signal). For example, if the top-level menu items are
+known statically and never change, they can be rendered as pure elements with
 this function. We can also create a function, perhaps of type \texttt{Bool ->
 Element}, which we can lift onto the hover data to display the submenu only on
 mouseover. The result is a value of type \texttt{Signal Element}. If we try to
@@ -322,7 +322,7 @@ we do not wish to require that menu labels be string literals in the source
 code, which would be necessary if we could not use signals of elements. Rather,
 they may be retrieved or generated in some other manner, or they may change as
 the user switches among applications. Finally, in order to determine when a user
-has clicked on an Element so that the system may respond, we must know which one
+has clicked on an element so that the system may respond, we must know which one
 is being hovered over.
 
 \subsection{Dynamic Hovering}
@@ -331,7 +331,7 @@ However, it is possible to implement the following function:
 \texttt{hoverableJoin: Signal Element -> (Signal Element, Signal Bool)}
 
 Comparing its type to the mentally convenient type of \texttt{lift hoverable},
-we see it is identical except that the Boolean value is a signal, not a signal
+we see it is identical except that the boolean value is a signal, not a signal
 of signals. That is, it has been joined.\footnote{While the name
     \texttt{hoverableJoin} reinforces this fact for our paper, we do not
 recommend it for a user-facing API.} It is implemented using the more general
@@ -348,9 +348,9 @@ be defined and so a default value is required). The returned record
 includes the \texttt{events} signal and the \texttt{hoverable}
 function, which in general may be applied multiple times so that
 multiple elements report their hover information on \texttt{events}. The
-\texttt{(Bool -> a)} is used to identify which Element
+\texttt{(Bool -> a)} is used to identify which element
 experienced the event; a common use is \texttt{a = (Int, Bool)} where
-the integer identifies the Element and the Bool is the event.
+the integer identifies the element and the boolean is the event.
 Additionally, \texttt{hoverables} is used to implement
 \texttt{hoverable}:
 
@@ -362,7 +362,7 @@ hoverable elem =
 \end{verbatim}
 
 It ignores the polymorphism (\texttt{a = Bool}) and instead create a
-Boolean signal that is originally false and use the identity function to
+boolean signal that is originally false and use the identity function to
 not alter the hoverable information. With a simple change, we can create
 a function that acts on \texttt{Signal Element} instead of
 \texttt{Element}:
@@ -396,11 +396,11 @@ same hovering signal. If we were to display both the old and the new elements on
 the screen, hovering over either would trigger the signal.
 
 More dangerously, it becomes easy to create an infinite loop. Suppose an
-Element shrinks on hover. Suppose the cursor hovers on the Element,
-which is then replaced by a smaller Element, so the cursor is no longer
-hovering on the Element. Then the original Element is put back, but is
+element shrinks on hover. Suppose the cursor hovers on the element,
+which is then replaced by a smaller element, so the cursor is no longer
+hovering on the element. Then the original element is put back, but is
 now being hovered on! This condition manifests itself as flickering
-between the two Elements. It is unavoidable in any language or system
+between the two elements. It is unavoidable in any language or system
 that allows hover targets to change size in response to hover events.
 
 \subsection{Generalized Joins on \texttt{Graphics.Input}}
@@ -422,7 +422,7 @@ the same exact same technique to be applied. (We have not tested whether
 this approach works, but the types allow it.) The same goes for text
 fields, which can be given text based on what else is known in the
 program, and checkboxes. As currently implemented, checkboxes have
-Boolean state so dynamic behavior has limited use. However, we can
+boolean state so dynamic behavior has limited use. However, we can
 imagine the ability to dynamically disable (``gray-out'') a checkbox in response
 to other choices in a form.
 
@@ -478,7 +478,7 @@ Therefore, a menu is specified by a value of type \texttt{Tree (Signal String)}.
 We can lift and map the combinator \texttt{plainText : String -> Element} to
 obtain from a menu specification a value of type \texttt{Tree (Signal Element)}.
 From there, we can use \texttt{hoverableJoin} to get the hover information of
-each Element and create a value of type \texttt{Tree (Signal Element, Signal
+each element and create a value of type \texttt{Tree (Signal Element, Signal
 Bool)} to represent our menus. \emph{Now} we convert (by structural recursion)
 our tree of signals to a signal of trees, a value of type \texttt{Signal (Tree
 (Element, Bool))}. We do the rest of our work with pure functions lifted to
@@ -488,12 +488,12 @@ operate on the tree, for example, our rendering function \texttt{renderMenu :
     signals in Elm code.
 
 Because \texttt{hoverableJoin} was applied throughout the entire tree, it
-contains every Element in every menu, and Booleans that indicate which ones to
-display. Rather than omitting Elements associated with false, we replace these
+contains every element in every menu, and booleans that indicate which ones to
+display. Rather than omitting elements associated with false, we replace these
 hidden submenus with a spacer. A spacer is simply a blank rectangle with a
 specified width and height (\texttt{spacer : Int -> Int
 -> Element}). For our purposes, the spacer has the same width as
-the Element, but a height of 1.\footnote{We were concerned a height of zero
+the element, but a height of 1.\footnote{We were concerned a height of zero
 would cause browser rendering issues.} We then switch between menu and the
 spacer based on hover information. The spacer helps to align the submenu with
 its parent element in a way a \texttt{Maybe Element} would not have done. By
@@ -525,8 +525,8 @@ delayFalse b = lift2 (||) b (delay millisecond b)
 
 Applying \texttt{delayFalse} makes a \texttt{Signal Bool} wait a millisecond to
 transition from true to false. Unlike a typical delay, false-to-true transitions
-still occur immediately. By applying this function to every hovering Boolean in
-the menu structure, we give the mouse time to move from a menu Element to its
+still occur immediately. By applying this function to every hovering boolean in
+the menu structure, we give the mouse time to move from a menu element to its
 submenu before that submenu disappears.
 
 A menu that does not detect mouse clicks is a fairly useless menu. There is no
@@ -559,7 +559,7 @@ Interestingly, we were able to implement menus without explicitly storing the
 state of the menu, i.e. without using \texttt{foldp} (or Elm's implementation of
 Arrowized FRP known as \texttt{Automaton}). Rather we use the current browser
 DOM state to remember state. Instead of storing the menu currently being
-displayed on the screen, we can derive it based on which Element (if any) the
+displayed on the screen, we can derive it based on which element (if any) the
 mouse is currently hovering over. The elimination of state from our code allows
 it to be much cleaner.
 
@@ -584,22 +584,22 @@ customButtons : a -> { events : Signal a,
 
 Notice the similarity with \texttt{hoverables}. Each call of
 \texttt{customButton} provides the identifier event when the button is
-clicked, and three (pure) Elements to display: one normally, one on
+clicked, and three (pure) elements to display: one normally, one on
 hover, and one on click. The result is an \texttt{Element}, not a
 \texttt{Signal Element}, that nevertheless changes among those three in
-response to the mouse. This is possible because the result Element's
+response to the mouse. This is possible because the result element's
 dimensions are taken to be the maximum of the three inputs' dimensions.
-Even if the Elements have different sizes, the resulting Element and
+Even if the elements have different sizes, the resulting element and
 therefore the hover surface remains fixed in size. Although the same
 join technique can be applied, we find it likely that it would not work
 as intended.
 
-In the case of TodoFRP, these three Elements are different colors of the ``x''
+In the case of TodoFRP, these three elements are different colors of the ``x''
 and the same for each TODO entry. The polymorphic \texttt{a}s are unique
 identifiers (ascending integers) for each entry.
 
-The TODO label Elements are dynamic and do not detect hover information.
-The button Elements that do detect hover information are known
+The TODO label elements are dynamic and do not detect hover information.
+The button elements that do detect hover information are known
 statically. With \texttt{hoverableJoin}, it becomes possible to
 dismiss a TODO by clicking on its text label.
 
