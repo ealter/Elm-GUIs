@@ -380,15 +380,13 @@ ultimately, because \texttt{pool.hoverable} is pure.
 
 Just how novel is this small, but hugely significant change? The
 \href{http://docs.elm-lang.org/library/Graphics/Input.elm\#hoverables}{documentation}
-for \texttt{hoverables} states that it allows users to ``create and
-destroy elements dynamically and still detect hover information,'' but
-gives no further indicators on how to do so. Though the Elm website is
-full of examples, there are none for either \texttt{hoverable} or
-\texttt{hoverables}. Moreover, in the
-\href{https://groups.google.com/d/msg/elm-discuss/QgowLy5jdhA/CZQfjkbjMsEJ}{mailing
-list post} that introduced these functions, Czaplicki said that
-``\texttt{hoverables} is very low level, but the idea is that you can
-build any kind of nicer abstraction on top of it.'' We have done just
+for \texttt{hoverables} states that it allows users to ``create and destroy
+elements dynamically and still detect hover information,'' but gives no further
+indicators on how to do so. Though the Elm website is full of examples, there
+are none for either \texttt{hoverable} or \texttt{hoverables}. Moreover, in the
+mailing list post that introduced these functions, Czaplicki said that
+``\texttt{hoverables} is very low level, but the idea is that you can build any
+kind of nicer abstraction on top of it.'' \cite{hover-forum} We have done just
 that.
 
 When a element changes, \texttt{hoverableJoin} attaches the new element to the
@@ -565,8 +563,8 @@ it to be much cleaner.
 
 \section{Related Work: TodoFRP}\label{related-work-todofrp}
 
-We examine \href{https://github.com/evancz/TodoFRP}{TodoFRP}, a simple
-Elm web app created by Czapliki, to provide another example of the problem
+We examine TodoFRP, \cite{todoFRP} a simple
+Elm web app created by Czaplicki, to provide another example of the problem
 solved by \texttt{hoverableJoin}. TodoFRP is the current state-of-the-art in highly
 reactive Elm GUIs. It provides examples of different levels of
 reactivity, a familiar context for Elm veterans, and a few dirty tricks
