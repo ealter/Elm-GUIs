@@ -450,13 +450,18 @@ instance of a tree.
 \texttt{data Tree a = Tree a [a]}
 
 The obvious type for a menu structure that may change is \texttt{Signal (Tree
-String)}. It is easy enough to convert a value of this type to one of type
+String)}.  It is easy enough to convert a value of this type to one of type
 \texttt{Signal (Tree Element)}, but we cannot add hover detection to this tree.
-We are able to map from \texttt{Signal Element -> (Signal Element,
-Signal Bool)}, but not (in any useful way) from \texttt{Element ->
-(Element, Bool)}. That is, because the tree is already a signal, we cannot
-create signals inside it (without creating signals of signals). Hover
-information requires a (distinct) signal at each item in the tree.
+We are able to map from \texttt{Signal Element -> (Signal Element, Signal
+Bool)}, but not (in any useful way) from \texttt{Element -> (Element, Bool)}. We
+obviously cannot create a \texttt{Signal (Tree (Signal Element, Signal Bool))}
+because that would constitute a signal of signals.  Therefore, we would need to
+create a function of type \texttt{Tree String -> Tree (Element, Bool)} and then
+\texttt{lift} it onto the \texttt{Signal (Tree String)}. However, since we
+cannot write the hovering function of type \texttt{Element -> (Element, Bool)},
+this is impossible.  Therefore, we cannot detect hoverable information on the
+\texttt{Signal (Tree String)}. Hover information requires a (distinct) signal at
+each item in the tree.
 
 Instead of a signal of trees, we therefore use a tree of signals. Each
 individual menu element can contain dynamic information, but the menu structure

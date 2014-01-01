@@ -12,7 +12,7 @@ choose : Bool -> a -> a -> a
 choose b ifTrue ifFalse = if b then ifTrue else ifFalse
 
 maybeBlank = lift3 choose (lift ((<) 4) (fps 1))
-                          (constant "")
+                          (constant " ")
                           (constant "barrrrrrrr")
 
 menuSpec : [Tree (Signal String)]

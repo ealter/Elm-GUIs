@@ -5,6 +5,7 @@ maybeHead xs = case xs of
                     []     -> Nothing
                     x :: _ -> Just x
 
+{- The same as the maybe monad, with the first 2 parameters switched -}
 maybeBind : (a -> Maybe b) -> Maybe a -> Maybe b
 maybeBind f may = case may of
                       Nothing -> Nothing
