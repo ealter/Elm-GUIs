@@ -351,7 +351,7 @@ an event is fired on the \texttt{events} signal. The value of that event is
 determined by the \texttt{(Bool -> a)} parameter of the \texttt{hoverable}
 function. In many cases, \texttt{a} will be \texttt{Bool} and the function will
 be \texttt{id}. In general, the record's \texttt{hoverable} may be applied
-multiple times with all elements it produces reporting their hover information
+multiple times, with all elements it produces reporting their hover information
 on \texttt{events}. In this case, \texttt{a} can serve as an identifier, and is
 provided by the function argument.
 
@@ -365,13 +365,14 @@ hoverable elem =
     in  (pool.hoverable id elem, pool.events)
 \end{verbatim}
 
-Using only \texttt{hoverable}, we are restricted to one element per signal. With
-\texttt{hoverables}, the hover information of an element can be added to an
-existing signal, and can even be added during program execution, that is, when
-the element is a signal. As the value of a signal of elements changes, we attach
-the hover information to the each new element without having to create a new
-output signal. We do this by partially applying \texttt{pool.hoverable} to
-\texttt{id} purely, and then lifting it on to the argument.
+Using only \texttt{hoverable}, we are restricted to one element per signal. By
+contrast, \texttt{hoverables} permits multiple elements on a single signal. The
+hover information of an element can be added to an existing signal, and can even
+be added dynamically, that is, when the element is a signal. As the value of a
+signal of elements changes, we attach the hover information to the each new
+element without having to create a new output signal. We do this by partially
+applying \texttt{pool.hoverable} to \texttt{id} purely, and then lifting it on
+to the argument.
 
 \begin{verbatim}
 hoverableJoin : Signal Element -> (Signal Element, Signal Bool)
