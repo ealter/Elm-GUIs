@@ -343,17 +343,17 @@ hoverables : a -> { events : Signal a,
                     hoverable : (Bool -> a) -> Element -> Element }
 \end{verbatim}
 
-The first parameter to
-\texttt{hoverables} denotes the initial value of the \texttt{events} signal
-(signals in Elm must always be defined).
-The \texttt{hoverable} part of the record takes an element and attaches hover
-detection to it. Whenever the mouse hovers (or stops hovering) over the
-element, an event is fired on the \texttt{events} signal. The value of that
-event is determined by the \texttt{(Bool -> a)} parameter of the
-\texttt{hoverable} function. In many cases, this will be \texttt{id} so that the
-\texttt{events} signal is \texttt{True} when the element is being hovered upon
-and \texttt{False} when it is not. However, the \texttt{(Bool -> a)} parameter
-allows you to provide a different value on the \texttt{events} signal for different elements.
+The first parameter to \texttt{hoverables} denotes the initial value of the
+\texttt{events} signal (signals in Elm must always be defined). The record's
+\texttt{hoverable} function is applied to an element and attaches hover
+detection to it. Whenever the mouse hovers (or stops hovering) over the element,
+an event is fired on the \texttt{events} signal. The value of that event is
+determined by the \texttt{(Bool -> a)} parameter of the \texttt{hoverable}
+function. In many cases, \texttt{a} will be \texttt{Bool} and the function will
+be \texttt{id}. In general, the record's \texttt{hoverable} may be applied
+multiple times with all elements it produces reporting their hover information
+on \texttt{events}. In this case, \texttt{a} can serve as an identifier, and is
+provided by the function argument.
 
 The more widely used \texttt{hoverable} function is implemented using
 \texttt{hoverables}.
@@ -365,15 +365,13 @@ hoverable elem =
     in  (pool.hoverable id elem, pool.events)
 \end{verbatim}
 
-There is a subtle, yet very important difference between \texttt{hoverables} and
-\texttt{hoverable}. After providing the initial parameter to
-\texttt{hoverables}, you are given a signal and a way to attach elements to that
-signal. By applying the \texttt{hoverable} part of the record to multiple
-elements, we can create a single signal which responds to the hover information
-of those elements, instead of one signal per element. We can then exploit this
-property to detect hoverable information on a signal of elements. As the value
-of the input signal of elements changes, we attach the hover information to the
-new element without having to create a new output signal.
+Using only \texttt{hoverable}, we are restricted to one element per signal. With
+\texttt{hoverables}, the hover information of an element can be added to an
+existing signal, and can even be added during program execution, that is, when
+the element is a signal. As the value of a signal of elements changes, we attach
+the hover information to the each new element without having to create a new
+output signal. We do this by partially applying \texttt{pool.hoverable} to
+\texttt{id} purely, and then lifting it on to the argument.
 
 \begin{verbatim}
 hoverableJoin : Signal Element -> (Signal Element, Signal Bool)
@@ -381,9 +379,6 @@ hoverableJoin elem =
     let pool = hoverables False
     in (lift (pool.hoverable id) elem, pool.events)
 \end{verbatim}
-
-Notice that \texttt{pool.hoverable} is partially applied to \texttt{id}
-purely, and then lifted on to the argument. 
 
 Just how novel is this small, but hugely significant change? The
 \href{http://docs.elm-lang.org/library/Graphics/Input.elm\#hoverables}{documentation}
