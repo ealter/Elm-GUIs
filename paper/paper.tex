@@ -398,13 +398,15 @@ When a element changes, \texttt{hoverableJoin} attaches the new element to the
 same hovering signal. If we were to display both the old and the new elements on
 the screen, hovering over either would trigger the signal.
 
-More dangerously, it becomes easy to create an infinite loop. Suppose an
-element shrinks on hover. Suppose the cursor hovers on the element,
-which is then replaced by a smaller element, so the cursor is no longer
-hovering on the element. Then the original element is put back, but is
-now being hovered on! This condition manifests itself as flickering
-between the two elements. It is unavoidable in any language or system
-that allows hover targets to change size in response to hover events.
+More dangerously, it becomes easy to create an infinite loop. Suppose an element
+shrinks on hover and returns to its original size without hover. Now suppose the
+cursor hovers on the element, which is then replaced by a smaller element, so
+the cursor is no longer hovering on the element. Then the original element is
+put back, but is now being hovered on because the mouse has not moved, so the
+cycle repeats. This condition often manifests itself as flickering between the
+two elements. As this description is implementation-independent, it is
+unavoidable in any language or system that allows hover targets to change size
+in response to hover events on that target.
 
 \subsection{Generalized Joins on \texttt{Graphics.Input}}
 
