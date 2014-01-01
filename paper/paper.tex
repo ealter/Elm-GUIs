@@ -342,17 +342,24 @@ hoverables : a -> { events : Signal a,
                     hoverable : (Bool -> a) -> Element -> Element }
 \end{verbatim}
 
-The polymorphic \texttt{a} type can serve as an identifier. The first
-value supplies the default value of \texttt{events} (signals must always
-be defined and so a default value is required). The returned record
-includes the \texttt{events} signal and the \texttt{hoverable}
-function, which in general may be applied multiple times so that
-multiple elements report their hover information on \texttt{events}. The
-\texttt{(Bool -> a)} is used to identify which element
-experienced the event; a common use is \texttt{a = (Int, Bool)} where
-the integer identifies the element and the boolean is the event.
-Additionally, \texttt{hoverables} is used to implement
-\texttt{hoverable}:
+A typical use of \texttt{hoverables} is as follows. An initial
+\texttt{a} is supplied that becomes the default value of
+\texttt{events}. If \texttt{hoverable} is never applied, \texttt{events}
+is constant. If it is, the \texttt{Element} argument of
+\texttt{hoverable} in the record acts much like it does in
+\texttt{hoverable} the top-level combinator: provides the static visual
+appearance of the result \texttt{Element}, which also has hover
+detection added. Hover events are boolean, so the function argument is
+called on every such event to produce an \texttt{a} that becomes an
+event on \texttt{events}.
+
+What gives \texttt{hoverables} its plural name is that the record's
+\texttt{hoverable} may be applied multiple times so that multiple
+elements report their hover information on \texttt{events}. The
+polymorphic \texttt{a} type exists to uniquely identify each element,
+though it is also common for the \texttt{a} to also include the boolean
+event. The simplest choice of \texttt{a} is simply \texttt{Bool}, and
+this allows \texttt{hoverables} to implement \texttt{hoverable}:
 
 \begin{verbatim}
 hoverable : Element -> (Element, Signal Bool)
@@ -361,10 +368,8 @@ hoverable elem =
     in  (pool.hoverable id elem, pool.events)
 \end{verbatim}
 
-It ignores the polymorphism (\texttt{a = Bool}) and instead create a
-boolean signal that is originally false and use the identity function to
-not alter the hoverable information. With a simple change, we can create
-a function that acts on \texttt{Signal Element} instead of
+The \texttt{a -> Bool} function trivially becomes the identity. With a simple
+change, we can create a function that acts on \texttt{Signal Element} instead of
 \texttt{Element}:
 
 \begin{verbatim}
