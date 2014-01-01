@@ -104,9 +104,10 @@ We contribute:
   The identification of an apparent limitation in Elm's hover detection
   library, solved by a non-trivial usage pattern that does not require
   modifications to the Elm compiler or runtime, and that generalizes to
-  other functions in \texttt{Graphics.Input}.
+  other functions in \texttt{Graphics.Input}. Concretely, this is the
+  implementation of \texttt{hoverableJoin}.
 \item
-  An implementation of desktop-style menu in Elm, which incorporates
+  An implementation of desktop-style menus in Elm, which incorporates
   several noteworthy ``tricks'' as well as general style best practices.
 \item
   An analysis of TodoFRP, the current state-of-the-art in dynamic Elm
@@ -117,7 +118,7 @@ We contribute:
 Section \ref{elm-for-functional-programmers} introduces Elm, signals, state, and
 the prohibition on signals of signals. It is targeted to readers familiar with
 functional programming but not FRP, and may be skipped by those already
-comfortable with Elm.  Section \ref{detecting-hover-information} presents Elm's
+comfortable with Elm. Section \ref{detecting-hover-information} presents Elm's
 hover detection API for DOM elements, why it initially appears inadequate, and
 how it can be extended to meet our needs. Section \ref{implementing-menus}
 explains our menu implementation in detail. Section \ref{related-work-todofrp}
@@ -399,13 +400,15 @@ When a element changes, \texttt{hoverableJoin} attaches the new element to the
 same hovering signal. If we were to display both the old and the new elements on
 the screen, hovering over either would trigger the signal.
 
-More dangerously, it becomes easy to create an infinite loop. Suppose an
-element shrinks on hover. Suppose the cursor hovers on the element,
-which is then replaced by a smaller element, so the cursor is no longer
-hovering on the element. Then the original element is put back, but is
-now being hovered on! This condition manifests itself as flickering
-between the two elements. It is unavoidable in any language or system
-that allows hover targets to change size in response to hover events.
+More dangerously, it becomes easy to create an infinite loop. Suppose an element
+shrinks on hover and returns to its original size without hover. Now suppose the
+cursor hovers on the element, which is then replaced by a smaller element, so
+the cursor is no longer hovering on the element. Then the original element is
+put back, but is now being hovered on because the mouse has not moved, so the
+cycle repeats. This condition often manifests itself as flickering between the
+two elements. As this description is implementation-independent, it is
+unavoidable in any language or system that allows hover targets to change size
+in response to hover events on that target.
 
 \subsection{Generalized Joins on \texttt{Graphics.Input}}
 
@@ -624,7 +627,7 @@ described.
 
 We have implemented all of this without language modifications. However,
 it is hoped that as the community becomes more familiar with functional
-GUIs, new libraries are added to incorporate some of our tricks, or even
+GUIs, new libraries are added that incorporate some of our tricks, or even
 make them unnecessary. Elm's upcoming third-party library sharing system
 looks to be an excellent opportunity to refine abstractions and idioms
 for GUIs.
