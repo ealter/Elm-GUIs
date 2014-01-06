@@ -6,7 +6,7 @@ cd build
 fixElmRuntime() {
     file=$1
     temp=$(mktemp)
-    regex='s/src=\".*elm-runtime.js\"/src=\"\/elm-runtime.js\"/g'
+    regex='s/src=\".*elm-runtime.js\"/src=\"\/Elm-GUIs\/elm-runtime.js\"/g'
     sed "$regex" "$file" > "$temp"
     mv "$temp" "$file"
 }
