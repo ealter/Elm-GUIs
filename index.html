@@ -11,13 +11,14 @@ create desktop-style menus in Elm. It outlines the challenges posed and the
 solutions we found. Primarily, we were able to detect hover information about
 the elements in a Signal Element without modifying the compiler or runtime, but
 in a way that is very non-obvious (hopefully). It is a workaround for the lack
-of signals of signals. Any sufficiently advanced GUI using Graphics.Input will
-be affected by the problems we outline. We also include an overview of Elm
+of signals of signals. Any sufficiently advanced GUI using
+<a href="http://docs.elm-lang.org/library/Graphics/Input.elm">Graphics.Input</a>
+will be affected by the problems we outline. We also include an overview of Elm
 targeted for those with a background in FP, with particular attention paid to
 explaining why signals of signals are disallowed. We also briefly analyze
-TodoFRP as the current state-of-the-art in Elm GUIs, and the HTML widget
-wrappers in Graphics.Input. You can read our paper
-<a href="PAPER.pdf">here</a>.</p>
+<a href="https://github.com/evancz/TodoFRP">TodoFRP</a>
+as the current state-of-the-art in Elm GUIs, and the HTML widget wrappers in
+Graphics.Input. You can read our paper <a href="PAPER.pdf">here</a>.</p>
 
 <p>We also provided several src/builds highlighting various functionality of our menu
 system. The source code for each example can be found in our
@@ -36,12 +37,12 @@ system. The source code for each example can be found in our
     <code>stringsAgain</code> and <code>treeAtPath</code> functions.</li>
 
     <li><a href="src/build/menus/maybeBlank.html">maybeBlank.elm</a> tests how the
-    code handles blank strings. It src/buildnstrates a bug in the hoverable detection
+    code handles blank strings. It demonstrates a bug in the hoverable detection
     of Elm. Put your mouse in the middle of the first menu item and wait for the
     menu to change. After the menu changes, the mouse stops hovering over the
     first item, but the first submenu remains expanded.</li>
 
-    <li><a href="src/build/menus/clicks.html">clicks.elm</a> src/buildnstrates click
+    <li><a href="src/build/menus/clicks.html">clicks.elm</a> demonstrates click
     detection.</li>
 </ul>
 
