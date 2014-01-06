@@ -1,0 +1,330 @@
+<!DOCTYPE HTML>
+<html><head><meta charset="UTF-8"><title>Tree</title><script type="text/javascript" src="/elm-runtime.js"></script><script type="text/javascript">Elm.Tree = Elm.Tree || {};
+Elm.Tree.make = function (_elm)
+                {
+                  _elm.Tree = _elm.Tree || {};
+                  if (_elm.Tree.values)
+                  return _elm.Tree.values;
+                  var N = Elm.Native,
+                      _N = N.Utils.make(_elm),
+                      _L = N.List.make(_elm),
+                      _E = N.Error.make(_elm),
+                      _J = N.JavaScript.make(_elm),
+                      $moduleName = "Tree";
+                  var Text = Elm.Text.make(_elm);
+                  var Text = Elm.Text.make(_elm);
+                  var Basics = Elm.Basics.make(_elm);
+                  var Signal = Elm.Signal.make(_elm);
+                  var List = Elm.List.make(_elm);
+                  var Maybe = Elm.Maybe.make(_elm);
+                  var Time = Elm.Time.make(_elm);
+                  var Prelude = Elm.Prelude.make(_elm);
+                  var Graphics = Graphics || {};
+                  Graphics.Element = Elm.Graphics.Element.make(_elm);
+                  var Color = Elm.Color.make(_elm);
+                  var Graphics = Graphics || {};
+                  Graphics.Collage = Elm.Graphics.Collage.make(_elm);
+                  var MaybeHelpers = Elm.MaybeHelpers.make(_elm);
+                  var String = Elm.String.make(_elm);
+                  var _op = {};
+                  var nth = F2(function (i,list)
+                               {
+                                 return MaybeHelpers.maybeHead(A2(List.drop,i,list));
+                               });
+                  var Tree = F2(function (a,b)
+                                {
+                                  return {ctor: "Tree", _0: a, _1: b};
+                                });
+                  var extractTreeSignal = function (_v0)
+                                          {
+                                            return function ()
+                                                   {
+                                                     switch (_v0.ctor)
+                                                     {case
+                                                      "Tree" :
+                                                        return function ()
+                                                               {
+                                                                 var recursed = Signal.combine(A2(List.map,
+                                                                                                  extractTreeSignal,
+                                                                                                  _v0._1));
+                                                                 return A3(Signal.lift2,
+                                                                           Tree,
+                                                                           _v0._0,
+                                                                           recursed);
+                                                               }();}
+                                                     _E.Case($moduleName,"between lines 60 and 61");
+                                                   }();
+                                          };
+                  var flattenTree = function (_v4)
+                                    {
+                                      return function ()
+                                             {
+                                               switch (_v4.ctor)
+                                               {case
+                                                "Tree" :
+                                                  return {ctor: "::", _0: _v4._0, _1: List.concat(A2(List.map,
+                                                                                                     flattenTree,
+                                                                                                     _v4._1))};}
+                                               _E.Case($moduleName,"on line 67, column 27 to 61");
+                                             }();
+                                    };
+                  var collapseTreeSignals = function ($)
+                                            {
+                                              return Signal.merges(flattenTree($));
+                                            };
+                  var leaf = function (a)
+                             {
+                               return A2(Tree,a,_J.toList([]));
+                             };
+                  var showTree = function (_v8)
+                                 {
+                                   return function ()
+                                          {
+                                            switch (_v8.ctor)
+                                            {case
+                                             "Tree" :
+                                               return function ()
+                                                      {
+                                                        switch (_v8._1.ctor)
+                                                        {case
+                                                         "[]" :
+                                                           return Prelude.show(_v8._0);}
+                                                        return String.concat(_J.toList(["[",
+                                                                                        Prelude.show(_v8._0),
+                                                                                        Prelude.show(A2(List.map,
+                                                                                                        showTree,
+                                                                                                        _v8._1)),
+                                                                                        "]"]));
+                                                      }();}
+                                            _E.Case($moduleName,"between lines 72 and 74");
+                                          }();
+                                 };
+                  var treeData = function (_v13)
+                                 {
+                                   return function ()
+                                          {
+                                            switch (_v13.ctor)
+                                            {case
+                                             "Tree" :
+                                               return _v13._0;}
+                                            _E.Case($moduleName,"on line 52, column 23 to 24");
+                                          }();
+                                 };
+                  var treeMap = F2(function (f,_v17)
+                                   {
+                                     return function ()
+                                            {
+                                              switch (_v17.ctor)
+                                              {case
+                                               "Tree" :
+                                                 return A2(Tree,
+                                                           f(_v17._0),
+                                                           A2(List.map,treeMap(f),_v17._1));}
+                                              _E.Case($moduleName,"on line 13, column 24 to 53");
+                                            }();
+                                   });
+                  var treeGetPaths = function (tree)
+                                     {
+                                       return function ()
+                                              {
+                                                var mapIndexes = F2(function (i,list)
+                                                                    {
+                                                                      return function ()
+                                                                             {
+                                                                               switch (list.ctor)
+                                                                               {case
+                                                                                "::" :
+                                                                                  return {ctor: "::", _0: {ctor: "_Tuple2", _0: list._0, _1: i}, _1: A2(mapIndexes,
+                                                                                                                                                        i + 1,
+                                                                                                                                                        list._1)};
+                                                                                case
+                                                                                "[]" :
+                                                                                  return _J.toList([]);}
+                                                                               _E.Case($moduleName,
+                                                                                       "between lines 23 and 27");
+                                                                             }();
+                                                                    });
+                                                var treeGetPaths$ = F2(function (_v24,prefix)
+                                                                       {
+                                                                         return function ()
+                                                                                {
+                                                                                  switch (_v24.ctor)
+                                                                                  {case
+                                                                                   "Tree" :
+                                                                                     return function ()
+                                                                                            {
+                                                                                              var addPrefix = function (_v28)
+                                                                                                              {
+                                                                                                                return function ()
+                                                                                                                       {
+                                                                                                                         switch (_v28.ctor)
+                                                                                                                         {case
+                                                                                                                          "_Tuple2" :
+                                                                                                                            return {ctor: "_Tuple2", _0: _v28._0, _1: {ctor: "::", _0: _v28._1, _1: prefix}};}
+                                                                                                                         _E.Case($moduleName,
+                                                                                                                                 "on line 30, column 37 to 51");
+                                                                                                                       }();
+                                                                                                              };
+                                                                                              var paths = List.map(addPrefix)(A2(mapIndexes,
+                                                                                                                                 0,
+                                                                                                                                 _v24._1));
+                                                                                              return Tree(prefix)(A2(List.map,
+                                                                                                                     function (_v32)
+                                                                                                                     {
+                                                                                                                       return function ()
+                                                                                                                              {
+                                                                                                                                switch (_v32.ctor)
+                                                                                                                                {case
+                                                                                                                                 "_Tuple2" :
+                                                                                                                                   return A2(treeGetPaths$,
+                                                                                                                                             _v32._0,
+                                                                                                                                             _v32._1);}
+                                                                                                                                _E.Case($moduleName,
+                                                                                                                                        "on line 34, column 46 to 63");
+                                                                                                                              }();
+                                                                                                                     },
+                                                                                                                     paths));
+                                                                                            }();}
+                                                                                  _E.Case($moduleName,
+                                                                                          "between lines 29 and 34");
+                                                                                }();
+                                                                       });
+                                                return treeMap(List.reverse)(A2(treeGetPaths$,
+                                                                                tree,
+                                                                                _J.toList([])));
+                                              }();
+                                     };
+                  var treeSubtree = function (_v36)
+                                    {
+                                      return function ()
+                                             {
+                                               switch (_v36.ctor)
+                                               {case
+                                                "Tree" :
+                                                  return _v36._1;}
+                                               _E.Case($moduleName,"on line 55, column 26 to 27");
+                                             }();
+                                    };
+                  var treeAtPath = F2(function (tree,path)
+                                      {
+                                        return function ()
+                                               {
+                                                 switch (path.ctor)
+                                                 {case
+                                                  "::" :
+                                                    return A2(MaybeHelpers.maybeBind,
+                                                              recurseAtPath(path._1),
+                                                              A2(nth,path._0,treeSubtree(tree)));
+                                                  case
+                                                  "[]" :
+                                                    return Maybe.Just(_J.toList([]));}
+                                                 _E.Case($moduleName,"between lines 46 and 49");
+                                               }();
+                                      });
+                  var recurseAtPath = F2(function (restOfPath,node)
+                                         {
+                                           return A2(MaybeHelpers.maybeCons,
+                                                     treeData(node),
+                                                     A2(treeAtPath,node,restOfPath));
+                                         });
+                  var treeZipWith = F3(function (f,_v43,_v44)
+                                       {
+                                         return function ()
+                                                {
+                                                  switch (_v44.ctor)
+                                                  {case
+                                                   "Tree" :
+                                                     return function ()
+                                                            {
+                                                              switch (_v43.ctor)
+                                                              {case
+                                                               "Tree" :
+                                                                 return A2(Tree,
+                                                                           A2(f,_v43._0,_v44._0),
+                                                                           A3(List.zipWith,
+                                                                              treeZipWith(f),
+                                                                              _v43._1,
+                                                                              _v44._1));}
+                                                              _E.Case($moduleName,
+                                                                      "on line 16, column 43 to 88");
+                                                            }();}
+                                                  _E.Case($moduleName,
+                                                          "on line 16, column 43 to 88");
+                                                }();
+                                       });
+                  _elm.Tree.values = {_op: _op, Tree: Tree, leaf: leaf, treeMap: treeMap, treeZipWith: treeZipWith, treeGetPaths: treeGetPaths, treeData: treeData, treeSubtree: treeSubtree, treeAtPath: treeAtPath, extractTreeSignal: extractTreeSignal, flattenTree: flattenTree, collapseTreeSignals: collapseTreeSignals, showTree: showTree};
+                  return _elm.Tree.values;
+                };Elm.MaybeHelpers = Elm.MaybeHelpers || {};
+Elm.MaybeHelpers.make = function (_elm)
+                        {
+                          _elm.MaybeHelpers = _elm.MaybeHelpers || {};
+                          if (_elm.MaybeHelpers.values)
+                          return _elm.MaybeHelpers.values;
+                          var N = Elm.Native,
+                              _N = N.Utils.make(_elm),
+                              _L = N.List.make(_elm),
+                              _E = N.Error.make(_elm),
+                              _J = N.JavaScript.make(_elm),
+                              $moduleName = "MaybeHelpers";
+                          var Text = Elm.Text.make(_elm);
+                          var Text = Elm.Text.make(_elm);
+                          var Basics = Elm.Basics.make(_elm);
+                          var Signal = Elm.Signal.make(_elm);
+                          var List = Elm.List.make(_elm);
+                          var Maybe = Elm.Maybe.make(_elm);
+                          var Time = Elm.Time.make(_elm);
+                          var Prelude = Elm.Prelude.make(_elm);
+                          var Graphics = Graphics || {};
+                          Graphics.Element = Elm.Graphics.Element.make(_elm);
+                          var Color = Elm.Color.make(_elm);
+                          var Graphics = Graphics || {};
+                          Graphics.Collage = Elm.Graphics.Collage.make(_elm);
+                          var _op = {};
+                          var maybeHead = function (xs)
+                                          {
+                                            return function ()
+                                                   {
+                                                     switch (xs.ctor)
+                                                     {case
+                                                      "::" :
+                                                        return Maybe.Just(xs._0);
+                                                      case
+                                                      "[]" :
+                                                        return Maybe.Nothing;}
+                                                     _E.Case($moduleName,"between lines 4 and 8");
+                                                   }();
+                                          };
+                          var maybeBind = F2(function (f,may)
+                                             {
+                                               return function ()
+                                                      {
+                                                        switch (may.ctor)
+                                                        {case
+                                                         "Just" :
+                                                           return f(may._0);
+                                                         case
+                                                         "Nothing" :
+                                                           return Maybe.Nothing;}
+                                                        _E.Case($moduleName,
+                                                                "between lines 10 and 12");
+                                                      }();
+                                             });
+                          var maybeMap = function (f)
+                                         {
+                                           return maybeBind(function ($)
+                                                            {
+                                                              return Maybe.Just(f($));
+                                                            });
+                                         };
+                          var maybeCons = F2(function (x,xs)
+                                             {
+                                               return A2(maybeMap,
+                                                         F2(function (x,y)
+                                                            {
+                                                              return {ctor: "::", _0: x, _1: y};
+                                                            })(x),
+                                                         xs);
+                                             });
+                          _elm.MaybeHelpers.values = {_op: _op, maybeHead: maybeHead, maybeBind: maybeBind, maybeMap: maybeMap, maybeCons: maybeCons};
+                          return _elm.MaybeHelpers.values;
+                        };</script></head><body><script type="text/javascript">Elm.fullscreen(Elm.Tree)</script><noscript></noscript></body></html>
